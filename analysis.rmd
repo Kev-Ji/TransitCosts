@@ -1,3 +1,21 @@
-```{r setup}
+```{r setup, message = FALSE, warning = FALSE}
 library(tidyverse)
+require(sf)
+transit <- read.csv("transit_cost.csv")
+```
+
+```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE}
+
+medcost <- transit %>% group_by(country) %>% summarize(median.cost = median(cost_km_millions, na.rm=T))
+
+colnames(medcost) <- c("ISO", "Median_Cost")
+
+shp <- st_read("World_Countries_Generalized.shp")
+
+medshp <- merge(shp, medcost)
+
+well <- medshp %>% select(Median_Cost, geometry)
+
+plot(well, main = "Median Cost of Transit Project per km (in millions of USD)")
+
 ```
