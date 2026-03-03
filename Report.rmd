@@ -25,7 +25,7 @@ clean_transit <- clean_transit %>%
 
 ```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE}
 
-medcost <- transit %>% group_by(country) %>% summarize(median.cost = median(cost_km_millions, na.rm=T))
+medcost <- transit_cost %>% group_by(country) %>% summarize(median.cost = median(cost_km_millions, na.rm=T))
 
 colnames(medcost) <- c("ISO", "Median_Cost")
 
