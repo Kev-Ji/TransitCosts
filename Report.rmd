@@ -1,0 +1,40 @@
+```{r setup, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(sf)
+library(car)
+library(alr4)
+library(leaps)
+library(countrycode)
+
+transit_cost <- read.csv("transit_cost.csv")
+```
+
+```{r data cleaning}
+
+clean_transit <- transit_cost %>%
+  select(c(e, country, city, start_year, end_year, rr, length, tunnel_per, tunnel, stations, year, ppp_rate, real_cost, cost_km_millions)) %>%
+  filter(!is.na(e) & real_cost != 0)
+
+clean_transit <- clean_transit %>%
+  mutate(real_cost = as.numeric(real_cost)) %>%
+  mutate(rr = as.factor(rr)) %>%
+  filter(end_year <= 2026) %>%
+  mutate(duration = as.numeric(end_year) - as.numeric(start_year))
+
+```
+
+```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE}
+
+medcost <- transit %>% group_by(country) %>% summarize(median.cost = median(cost_km_millions, na.rm=T))
+
+colnames(medcost) <- c("ISO", "Median_Cost")
+
+shp <- st_read("World_Countries_Generalized.shp")
+
+medshp <- merge(shp, medcost)
+
+well <- medshp %>% select(Median_Cost, geometry)
+
+plot(well, main = "Median Cost of Transit Project per km (in millions of USD)")
+
+```
