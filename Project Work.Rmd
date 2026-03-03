@@ -47,15 +47,15 @@ clean_transit<- subset(clean_transit, !e %in% c(7226, 7336, 7417))
 clean_transit <- rbind(clean_transit, gb)
   
 
-clean_transit$continent <- countrycode(sourcevar = clean_transit$country,
+clean_transit$region <- countrycode(sourcevar = clean_transit$country,
                             origin = "iso2c",
-                            destination = "continent")
+                            destination = "region23")
 
 df <- clean_transit %>%
-  select(c(e, rr, length, stations, ppp_rate, real_cost, cost_km_millions, duration, continent))
+  select(c(e, rr, length, stations, ppp_rate, real_cost, cost_km_millions, duration, region))
 
 clean_transit %>%
-  group_by(continent) %>%
+  group_by(region) %>%
   summarize(mean_cost = mean(real_cost), median_cost = median(real_cost), mean_duration = mean(duration, na.rm=T), mean_length = mean(length), mean_cost_by_km = mean(cost_km_millions)) 
 
 ```
@@ -64,24 +64,23 @@ clean_transit %>%
 
 ```{r exploration}
 
-pairs(df[, c(7, 9, 10, 12, 13, 14, 15)])
-
 #boxplots
 ggplot(df) +
-  geom_boxplot(mapping = aes(y = real_cost, fill = continent))
+  geom_boxplot(mapping = aes(y = real_cost, fill = region))
 
 ggplot(df) +
-  geom_boxplot(mapping = aes(y = cost_km_millions, fill = continent))
+  geom_boxplot(mapping = aes(y = cost_km_millions, fill = region))
 
 
 #scatterplots
 ggplot(df) +
-  geom_point(aes(x = length, y = real_cost, colour = continent))
+  geom_point(aes(x = length, y = real_cost, colour = region))
 
 ggplot(df) +
-  geom_point(aes(x = length, y = duration, colour = continent))
+  geom_point(aes(x = length, y = duration, colour = region))
 
 ```
+
 
 
 
