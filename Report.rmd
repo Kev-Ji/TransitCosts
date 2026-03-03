@@ -1,3 +1,17 @@
+# Transit Costs across the World
+
+## Data
+
+Our data comes from the 
+
+## Research Questions
+
+## Methodology 
+
+## Results
+
+## Conclusion
+
 ```{r setup, message = FALSE, warning = FALSE}
 library(tidyverse)
 library(sf)

@@ -1,7 +1,10 @@
 # TransitCosts
 An analysis of factors that affect the total cost of transit projects across the world.  
 **Authors:** Kevin Ji, Sangey Rinchen, Blake Xu  
+
 **Dataset Link**: https://github.com/rfordatascience/tidytuesday/blob/main/data/2021/2021-01-05/Merged%20Costs%20(1.0)%20-%20Sheet1.csv  
+**Country Shapefile Source:** https://hub.arcgis.com/datasets/esri::world-countries-generalized  
+**Country Categories**: https://datatopics.worldbank.org/sdgatlas/archive/2017/the-world-by-region.html  
 
 ### Data Dictionary
 
@@ -29,3 +32,11 @@ An analysis of factors that affect the total cost of transit projects across the
 |Cost/km (millions) |double    | Cost/km in millions of USD |
 |Source2          |character | Where was data sourced for cost |
 |Reference        |character | Reference URL for source |
+
+## TBD 
+
+- Merge North America with Central America
+- Merge South, North, and Western Europe
+- Merge Northern Africa with Western Asia
+- Merge Central Asia with Eastern Asia
+- Merge Southeastern Asia with Australasia
