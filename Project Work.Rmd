@@ -1,0 +1,67 @@
+---
+title: "Untitled"
+output: pdf_document
+date: "2026-03-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(car)
+library(alr4)
+library(leaps)
+
+transit_cost <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-01-05/transit_cost.csv')
+
+```
+
+
+```{r data cleaning}
+
+clean_transit <- transit_cost %>%
+  select(c(e, country, city, start_year, end_year, rr, length, tunnel_per, tunnel, stations, year, ppp_rate, real_cost, cost_km_millions)) %>%
+  filter(!is.na(e) & real_cost != 0)
+
+clean_transit <- clean_transit %>%
+  mutate(real_cost = as.numeric(real_cost)) %>%
+  mutate(rr = as.factor(rr)) %>%
+  filter(end_year <= 2026) %>%
+  mutate(duration = as.numeric(end_year) - as.numeric(start_year))
+
+```
+
+
+
+```{r}
+
+clean_transit %>%
+  group_by(country) %>%
+  count(sort = T)
+
+df <- clean_transit %>%
+  filter(country %in% c("CN", "IN", "TR", "ES", "FR", "JP", "DE", "IT", "US", "TW"))
+
+df %>%
+  group_by(country) %>%
+  summarize(mean_cost = mean(real_cost), median_cost = median(real_cost), mean_duration = mean(duration, na.rm=T))
+
+```
+
+
+
+```{r exploration}
+
+pairs(df[, c(7, 9, 10, 12, 13, 14, 15)])
+
+ggplot(df) +
+  geom_boxplot(mapping = aes(y = real_cost, fill = country))
+
+ggplot(df) +
+  geom_point(aes(x = length, y = real_cost, colour = country))
+
+ggplot(df) +
+  geom_point(aes(x = real_cost, y = duration, colour = country))
+
+```
+
