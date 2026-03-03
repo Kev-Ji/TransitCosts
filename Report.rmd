@@ -6,13 +6,15 @@ library(alr4)
 library(leaps)
 library(countrycode)
 
-transit_cost <- read.csv("transit_cost.csv")
+transit_cost <- read.csv("transitcost.csv")
 ```
 
 ```{r data cleaning}
 
 clean_transit <- transit_cost %>%
-  select(c(e, country, city, start_year, end_year, rr, length, tunnel_per, tunnel, stations, year, ppp_rate, real_cost, cost_km_millions)) %>%
+  select(c(e, country, city, start_year, end_year, rr, length, 
+  tunnel_per, tunnel, stations, year, ppp_rate, real_cost,
+   cost_km_millions)) %>%
   filter(!is.na(e) & real_cost != 0)
 
 clean_transit <- clean_transit %>%
@@ -23,18 +25,24 @@ clean_transit <- clean_transit %>%
 
 ```
 
-```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE}
+```{r spatial autocorrelation,  include = FALSE, message = FALSE,  warning = FALSE}
 
-medcost <- transit_cost %>% group_by(country) %>% summarize(median.cost = median(cost_km_millions, na.rm=T))
+medcost <- transit_cost %>% group_by(country) %>% 
+summarize(median.cost = median(cost_km_millions, na.rm=T))
 
 colnames(medcost) <- c("ISO", "Median_Cost")
 
 shp <- st_read("World_Countries_Generalized.shp")
 
-medshp <- merge(shp, medcost)
+shapefile <- merge(shp, medcost)
 
-well <- medshp %>% select(Median_Cost, geometry)
+shapefile <- shapefile %>% select(Median_Cost, geometry)
 
-plot(well, main = "Median Cost of Transit Project per km (in millions of USD)")
+```
+
+```{r spatial plot}
+
+plot(shapefile, main = 
+"Median Cost of Transit Project per km (in millions of USD)")
 
 ```
