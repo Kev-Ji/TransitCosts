@@ -1,7 +1,7 @@
 # TransitCosts
-An analysis of factors that affect the total cost of transit projects across the world.
-**Authors** Kevin Ji, Sangey Rinchen, Blake Xu
-Dataset Link: https://github.com/rfordatascience/tidytuesday/blob/main/data/2021/2021-01-05/Merged%20Costs%20(1.0)%20-%20Sheet1.csv
+An analysis of factors that affect the total cost of transit projects across the world.  
+**Authors** Kevin Ji, Sangey Rinchen, Blake Xu  
+Dataset Link: https://github.com/rfordatascience/tidytuesday/blob/main/data/2021/2021-01-05/Merged%20Costs%20(1.0)%20-%20Sheet1.csv  
 
 
 
