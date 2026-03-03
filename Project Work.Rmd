@@ -51,7 +51,8 @@ clean_transit$continent <- countrycode(sourcevar = clean_transit$country,
                             origin = "iso2c",
                             destination = "continent")
 
-df <- clean_transit
+df <- clean_transit %>%
+  select(c(e, rr, length, stations, ppp_rate, real_cost, cost_km_millions, duration, continent))
 
 clean_transit %>%
   group_by(continent) %>%
@@ -81,5 +82,6 @@ ggplot(df) +
   geom_point(aes(x = length, y = duration, colour = continent))
 
 ```
+
 
 
