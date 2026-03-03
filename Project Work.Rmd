@@ -44,7 +44,7 @@ df <- clean_transit %>%
 
 df %>%
   group_by(country) %>%
-  summarize(mean_cost = mean(real_cost), median_cost = median(real_cost), mean_duration = mean(duration, na.rm=T))
+  summarize(mean_cost = mean(real_cost), median_cost = median(real_cost), mean_duration = mean(duration, na.rm=T), mean_length = mean(length), mean_cost_by_km = mean(cost_km_millions)) 
 
 ```
 
@@ -64,4 +64,5 @@ ggplot(df) +
   geom_point(aes(x = real_cost, y = duration, colour = country))
 
 ```
+
 
