@@ -13,7 +13,7 @@ library(alr4)
 library(leaps)
 library(countrycode)
 
-transit_cost <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-01-05/transit_cost.csv')
+transit_cost <- read_csv("transitcost.csv")
 
 ```
 
@@ -82,6 +82,7 @@ ggplot(df) +
   geom_point(aes(x = length, y = duration, colour = continent))
 
 ```
+
 
 
 
