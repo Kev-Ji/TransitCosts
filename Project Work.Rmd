@@ -34,7 +34,7 @@ clean_transit <- clean_transit %>%
 
 
 
-```{r}
+```{r region mapping}
 
 clean_transit %>%
   group_by(country) %>%
@@ -60,7 +60,18 @@ clean_transit %>%
 
 ```
 
+```{r region_merge}
 
+clean_transit <- clean_transit %>%
+  mutate(group = case_when(
+    region %in% c("Northern America", "Central America") ~ "North America",
+    region %in% c("Southern Europe", "Northern Europe", "Western Europe") ~ "Europe",
+    region %in% c("Central Asia", "Eastern Asia") ~ "Asia",
+    region %in% c("South-Eastern Asia", "Australia and New Zealand") ~ "Oceania",
+    .default = region
+  ))
+
+```
 
 ```{r exploration}
 
@@ -80,6 +91,7 @@ ggplot(df) +
   geom_point(aes(x = length, y = duration, colour = region))
 
 ```
+
 
 
 
