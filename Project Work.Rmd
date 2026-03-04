@@ -68,6 +68,7 @@ clean_transit <- clean_transit %>%
     region %in% c("Southern Europe", "Northern Europe", "Western Europe") ~ "Europe",
     region %in% c("Central Asia", "Eastern Asia") ~ "Asia",
     region %in% c("South-Eastern Asia", "Australia and New Zealand") ~ "Oceania",
+    region %in% c("Northern Africa", "South America") ~ "North Africa & South America",
     .default = region
   ))
 
@@ -91,6 +92,7 @@ ggplot(df) +
   geom_point(aes(x = length, y = duration, colour = region))
 
 ```
+
 
 
 
