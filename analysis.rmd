@@ -1,12 +1,13 @@
 ```{r setup, message = FALSE, warning = FALSE}
 library(tidyverse)
 require(sf)
-transit <- read.csv("transit_cost.csv")
+require(spdep)
+transit <- read.csv("transitcost.csv")
 ```
 
 ```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE}
 
-medcost <- transit %>% group_by(country) %>% summarize(median.cost = median(cost_km_millions, na.rm=T))
+medcost <- transit %>% group_by(country) %>% summarize(median.cost = log(median(cost_km_millions, na.rm=T)))
 
 colnames(medcost) <- c("ISO", "Median_Cost")
 
@@ -18,4 +19,26 @@ well <- medshp %>% select(Median_Cost, geometry)
 
 plot(well, main = "Median Cost of Transit Project per km (in millions of USD)")
 
+centroid <- st_centroid(medshp)
+dist <- knearneigh(centroid, k = 4)
+dist_nb <- knn2nb(dist)
+medshp_wts <- nb2listw(dist_nb, style = "W")
+
+plot(st_geometry(medshp), reset = FALSE)
+plot(dist_nb, coords = st_coordinates(centroid), add = TRUE, col = "red")
+
+# Moran Scatterplot
+
+moran.plot(as.numeric(scale(medshp$Median_Cost)), listw=medshp_wts, 
+           xlab="Standardized Transit Project Cost", 
+           ylab="Standardized Lagged Project Cost",
+           main=c("Moran Scatterplot for Transit Costs") )
+
+    
+moran.test(medshp$Median_Cost, medshp_wts)    
+
+moran.mc(medshp$Median_Cost, medshp_wts, nsim = 999)
+
+
 ```
+
