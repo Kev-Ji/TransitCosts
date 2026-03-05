@@ -51,9 +51,6 @@ clean_transit$region <- countrycode(sourcevar = clean_transit$country,
                             origin = "iso2c",
                             destination = "region23")
 
-df <- clean_transit %>%
-  select(c(e, rr, length, stations, ppp_rate, real_cost, cost_km_millions, duration, region))
-
 clean_transit %>%
   group_by(region) %>%
   summarize(mean_cost = mean(real_cost), median_cost = median(real_cost), mean_duration = mean(duration, na.rm=T), mean_length = mean(length), mean_cost_by_km = mean(cost_km_millions)) 
@@ -77,21 +74,22 @@ clean_transit <- clean_transit %>%
 ```{r exploration}
 
 #boxplots
-ggplot(df) +
-  geom_boxplot(mapping = aes(y = real_cost, fill = region))
+ggplot(clean_transit) +
+  geom_boxplot(mapping = aes(y = real_cost, fill = group))
 
-ggplot(df) +
-  geom_boxplot(mapping = aes(y = cost_km_millions, fill = region))
+ggplot(clean_transit) +
+  geom_boxplot(mapping = aes(y = cost_km_millions, fill = group))
 
 
 #scatterplots
-ggplot(df) +
-  geom_point(aes(x = length, y = real_cost, colour = region))
+ggplot(clean_transit) +
+  geom_point(aes(x = length, y = real_cost, colour = group))
 
-ggplot(df) +
-  geom_point(aes(x = length, y = duration, colour = region))
+ggplot(clean_transit) +
+  geom_point(aes(x = length, y = duration, colour = group))
 
 ```
+
 
 
 
