@@ -4,7 +4,10 @@ An analysis of factors that affect the total cost of transit projects across the
 
 **Dataset Link**: https://github.com/rfordatascience/tidytuesday/blob/main/data/2021/2021-01-05/Merged%20Costs%20(1.0)%20-%20Sheet1.csv  
 **Country Shapefile Source:** https://hub.arcgis.com/datasets/esri::world-countries-generalized  
-**Country Categories**: https://datatopics.worldbank.org/sdgatlas/archive/2017/the-world-by-region.html  
+**Country Categories**: https://datatopics.worldbank.org/sdgatlas/archive/2017/the-world-by-region.html
+**Geert Hofstede dimensions of national culture**: https://geerthofstede.com/research-and-vsm/dimension-data-matrix/
+
+
 
 ### Data Dictionary
 

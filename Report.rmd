@@ -8,22 +8,34 @@ Our data comes from the
 
 ## Methodology 
 
+
+
 ## Results
+
+### Transit Project Duration
+
+### Cost Prediction
+
+### Spatial and Cultural Predictors (Kevin Ji)
 
 ## Conclusion
 
-```{r setup, message = FALSE, warning = FALSE}
+```{r setup, include = FALSE}
 library(tidyverse)
 library(sf)
+library(spdep)
 library(car)
 library(alr4)
 library(leaps)
+library(gridExtra)
 library(countrycode)
-
 transit_cost <- read.csv("transitcost.csv")
+transit_cost$tunnel_per = as.numeric(gsub("[\\%,]", "", transit_cost$tunnel_per))
+culture <- read.csv("hofstede_iso.csv")
+colnames(culture)[[1]] <- "ISO"
 ```
 
-```{r data cleaning}
+```{r data cleaning, include = FALSE}
 
 clean_transit <- transit_cost %>%
   select(c(e, country, city, start_year, end_year, rr, length, 
