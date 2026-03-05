@@ -1,13 +1,50 @@
-```{r setup, message = FALSE, warning = FALSE}
+```{r setup, message = FALSE, warning = FALSE, echo = FALSE, include = FALSE}
 library(tidyverse)
+library(gridExtra)
+library(car)
 require(sf)
 require(spdep)
-transit <- read.csv("transitcost.csv")
+transit_cost <- read.csv("transitcost.csv")
+transit_cost$tunnel_per = as.numeric(gsub("[\\%,]", "", transit_cost$tunnel_per))
+culture <- read.csv("hofstede_iso.csv")
+colnames(culture)[[1]] <- "ISO"
+
 ```
 
-```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE}
+```{r fullmerge, echo = FALSE}
 
-medcost <- transit %>% group_by(country) %>% summarize(median.cost = log(median(cost_km_millions, na.rm=T)))
+colnames(transit_cost) <- c("e", "ISO", "city", "line",
+"start_year", "end_year", "rr", "length", 'tunnel_per',
+'tunnel', 'stations', 'source1', 'cost', 'currency',
+'year', 'ppp_rate', 'real_cost', 'cost_km_millions',
+'source2', 'reference')
+
+```
+
+```{r culture model, echo = FALSE, warning = FALSE}
+
+transit.culture <- merge(transit_cost, culture)
+
+transit.culture <- transit.culture %>% 
+    mutate(real_cost = as.numeric(real_cost)) %>% 
+    mutate(rr = as.factor(rr)) %>% 
+    filter(end_year <= 2026) %>%
+    mutate(duration = as.numeric(end_year) - as.numeric(start_year)) %>%
+    mutate(longtermview = as.numeric(ltowvs),
+    uncertainty = as.numeric(uai),
+    competitive = as.numeric(mas),
+    power_distance = as.numeric(pdi),
+    individual = as.numeric(ivr))
+
+multicheck <- lm(cost_km_millions ~ longtermview + uncertainty + competitive + power_distance + individual, data = transit.culture)   
+
+long_term <- lm(cost_km_millions ~ longtermview + uncertainty + competitive +
+power_distance + individual + rr + tunnel_per + stations + duration, data = transit.culture)
+```
+
+```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE, include = FALSE}
+
+medcost <- transit_cost %>% group_by(ISO) %>% summarize(median.cost = log(median(cost_km_millions, na.rm=T)))
 
 colnames(medcost) <- c("ISO", "Median_Cost")
 
@@ -15,17 +52,26 @@ shp <- st_read("World_Countries_Generalized.shp")
 
 medshp <- merge(shp, medcost)
 
-well <- medshp %>% select(Median_Cost, geometry)
-
-plot(well, main = "Median Cost of Transit Project per km (in millions of USD)")
-
 centroid <- st_centroid(medshp)
-dist <- knearneigh(centroid, k = 4)
+dist <- knearneigh(centroid, k = 7)
 dist_nb <- knn2nb(dist)
 medshp_wts <- nb2listw(dist_nb, style = "W")
 
-plot(st_geometry(medshp), reset = FALSE)
+```
+
+```{r neighbor plot}
+plot(st_geometry(medshp))
 plot(dist_nb, coords = st_coordinates(centroid), add = TRUE, col = "red")
+```
+
+```{r MC Test, include = FALSE}
+moran.test(medshp$Median_Cost, medshp_wts)    
+
+mc <- moran.mc(medshp$Median_Cost, medshp_wts, nsim = 999)
+
+```
+
+```{r Moran Plot, echo = FALSE, message= F}
 
 # Moran Scatterplot
 
@@ -34,11 +80,51 @@ moran.plot(as.numeric(scale(medshp$Median_Cost)), listw=medshp_wts,
            ylab="Standardized Lagged Project Cost",
            main=c("Moran Scatterplot for Transit Costs") )
 
-    
-moran.test(medshp$Median_Cost, medshp_wts)    
 
-moran.mc(medshp$Median_Cost, medshp_wts, nsim = 999)
+```
+
+```{r spatiosocial, echo = FALSE}
+socio <- transit.culture %>% 
+    group_by(ISO) %>%
+    summarize(ltv = (abs(median(longtermview))),
+    uai = (abs(median(uncertainty) - 100)),
+    idv = (median(individual)), 
+    pdi =  (median(power_distance)),
+    comp = (median(competitive))) %>% 
+    ungroup()
+
+socioshp <- merge(shp, socio)
+
+med.p <- ggplot(data = medshp) + 
+    geom_sf(aes(fill = Median_Cost)) + theme_void() +
+     scale_color_viridis_b(aes = c("fill")) + 
+    labs(title = "Median Transit Cost by Country")
+
+p <- ggplot(socioshp) + scale_color_viridis_b(aes = c("fill")) + 
+    theme_void()
+ltv.p <- p +
+    geom_sf(aes(fill = ltv)) +
+    labs(title = "Long Term View by Country")
+
+uai.p <- p + 
+    geom_sf(aes(fill = uai)) +
+    labs(title = "Uncertainty Aversion by Country")
+
+comp.p <- p +
+    geom_sf(aes(fill = comp)) +
+    labs(title = "Competitiveness by Country")
+
+```
+```{r cultural plots, echo = FALSE}
+grid.arrange(med.p, ltv.p, uai.p, comp.p, ncol = 2)
+```
 
 
+Some econometric procedures recommending accounting for spatial autocorrelation by inflating standard errors.
+
+```{r Effective N, echo = FALSE}
+# effective N for spatial autocorrelation
+I <- mc$statistic
+eff_n <- nrow(transit_cost)*((1-I)/(1+I))
 ```
 

@@ -29,3 +29,6 @@ An analysis of factors that affect the total cost of transit projects across the
 |Cost/km (millions) |double    | Cost/km in millions of USD |
 |Source2          |character | Where was data sourced for cost |
 |Reference        |character | Reference URL for source |
+
+https://geerthofstede.com/research-and-vsm/dimension-data-matrix/
+
