@@ -5,25 +5,28 @@ date: "2026-03-02"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 library(tidyverse)
 library(car)
 library(alr4)
 library(leaps)
 library(countrycode)
+library(dplyr)
+library(broom)
 
-
-transit_cost <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2021/2021-01-05/transit_cost.csv')
+transit_cost <-  read_csv("transitcost.csv")
 
 ```
 
-
 ```{r data cleaning}
-
 clean_transit <- transit_cost %>%
-  select(c(e, country, city, start_year, end_year, rr, length, tunnel_per, tunnel, stations, year, ppp_rate, real_cost, cost_km_millions)) %>%
-  filter(!is.na(e) & real_cost != 0)
+  dplyr::select(e, country, city, start_year, end_year, rr, length,
+                tunnel_per, tunnel, stations, year, ppp_rate,
+                real_cost, cost_km_millions) %>%
+  dplyr::filter(!is.na(e) & real_cost != 0)
+
+
 
 clean_transit <- clean_transit %>%
   mutate(real_cost = as.numeric(real_cost)) %>%
@@ -37,10 +40,6 @@ clean_transit <- clean_transit %>%
 
 ```{r region mapping}
 
-clean_transit %>%
-  group_by(country) %>%
-  count(sort = T)
-
 gb <- filter(clean_transit, clean_transit$country == "UK") %>%
   mutate(country = "GB")
 
@@ -52,106 +51,193 @@ clean_transit$region <- countrycode(sourcevar = clean_transit$country,
                             origin = "iso2c",
                             destination = "region23")
 
-df <- clean_transit %>%
-  select(c(e, rr, length, stations, ppp_rate, real_cost, cost_km_millions, duration, region, year))
 
-clean_transit %>%
-  group_by(region) %>%
-  summarize(mean_cost = mean(real_cost), median_cost = median(real_cost), mean_duration = mean(duration, na.rm=T), mean_length = mean(length), mean_cost_by_km = mean(cost_km_millions)) 
 
 ```
-
 
 ```{r region_merge}
 
 clean_transit <- clean_transit %>%
   mutate(group = case_when(
     region %in% c("Northern America", "Central America", "South America") ~ "Americas",
-    region %in% c("Western Europe", "Northern Europe", "Southern Europe", "Eastern Europe", "Northern Africa") ~ "Europe & North Africa",
-    region %in% c("Eastern Asia", "Southern Asia", "Central Asia", "Western Asia") ~ "Asia",
-    region %in% c("South-Eastern Asia", "Australia and New Zealand") ~ "SE Asia & Oceania"
+    region %in% c("Southern Europe", "Northern Europe", "Western Europe") ~ "Europe",
+    region %in% c("Central Asia", "Eastern Asia") ~ "Asia",
+    region %in% c("South-Eastern Asia", "Australia and New Zealand") ~ "SE Asia & Oceania",
+    region %in% c("Northern Africa", "Western Asia") ~ "North Africa & West Asia",
+    .default = region
   ))
 
+
+
+#table(clean_transit$group)
 df <- clean_transit
-unique(clean_transit["group"])
-unique(df$group)
-table(df$group)
+df <- df[!is.na(df$tunnel_per), ]
 ```
 
 
-## Data Exploration 
+## Regression Modeling
 
 
-### Fit full model
+### Fit the baseline linear model
+We model **real construction cost** as a function of (i) geographic regions and
+(ii) key characteristics that are plausibly associated with cost: project year, length of line,
+number of stations, purchasing power parity (PPP), and construction duration.
+
+$$
+real\_cost \sim region + year + length + stations + ppp\_rate + duration
+$$
+
+The initial model statistics is
+
 ```{r}
 full <- lm(real_cost ~ group + year+ length + stations+ ppp_rate+duration, data = df)
-summary(full)
-vif(full)
-plot(full) 
-plot(full_log) 
-hist(full$residuals)
 
+broom::glance(full) %>%
+  dplyr::select(r.squared, sigma, AIC, BIC, nobs) %>%
+  knitr::kable(digits = 3, caption = "Model fit statistics")
 
 ```
-
-It turns out that we need do some transformation because the variance is non-constant and the distribution of standardized residuals is not normal. 
-
+Linear regression relies on zero means, constant error variance, and approximately normal residuals. We evaluate these using standard residual diagnostics. In the baseline model, residual plots indicate heteroskedasticity and departures from normality.
 
 
-### Transformation- Use BoxCox
 
-```{r}
+### Diagnostic assessment of modeling assumptions
+
+
+```{r baseline_diagnostics, fig.height=3, fig.width=5}
+par(mfrow = c(2,2), mar=c(3,3,2,1))
+plot(full, which = 1)
+plot(full, which = 2)
+plot(full, which = 4)
+hist(resid(full), main = "Residuals", xlab = "")
+par(mfrow = c(1,1))
+```
+
+
+
+
+
+### Transformation via BoxCox
+To address non-constant variance and improve residual normality, we apply a Box–Cox transformation
+to the strictly positive response.
+
+
+```{r boxcox, fig.width=4, fig.height=3}
 library(MASS)
 df_pos <- df %>% filter(real_cost > 0)
-full_pos <- lm(real_cost ~ region + year + length + stations + ppp_rate + duration, data = df_pos)
+full_pos <- lm(real_cost ~ group + year + length + stations + ppp_rate + duration, data = df_pos)
+par(mar = c(3,3,2,1))
 MASS::boxcox(full_pos, plotit = TRUE) ### The result turns out that we should raise y to power of 0.25
 ```
-```{r}
+
+The Box–Cox log-likelihood plot suggests a transformation near $\lambda \approx 0.25$, so we proceed with $Y^{0.25}$
+ 
+
+$$
+real\_cost^{0.25} \sim region + year + length + stations + ppp\_rate + duration
+$$
+
+### Refit our model and check conditions again. 
+
+
+```{r fig.width=5, fig.height=3}
 full_trans <- lm(real_cost^0.25 ~ group + year+ length + stations+ ppp_rate+duration, data = df)
-summary(full_trans)
-vif(full_trans)
-hist(full_trans$residuals)
-plot(full_trans) 
+#summary(full_trans)
+
+par(mfrow = c(2,2), mar=c(3,3,2,1))
+plot(full_trans, which = 1)
+plot(full_trans, which = 2)
+plot(full_trans, which = 4)
+hist(resid(full_trans), main = "Residuals", xlab = "")
+par(mfrow = c(1,1))
+
+
 ```
 
 
+After transformation, the residual diagnostics improve noticeably. The TA plot suggests more constant variance, and the Q–Q plot shows residuals closer to normality.
+
+We also examine influential observations. Although some points have larger standardized residuals, influence depends on both residual size and leverage, summarized by Cook’s distance. All Cook’s distances are well below common thresholds, 0.5, so no observations are removed.
 
 
+### Multicollinearity assessment
+```{r fig.width=3, fig.height=2}
+v <- vif(full_trans)
 
-### Check for outliers
+vif_df <- data.frame(
+  variable = rownames(v),
+  vif = v[,3]
+)
 
-```{r}
-outlierTest(full_log)
+
+ggplot(vif_df, aes(x = vif, y = reorder(variable, vif)))+
+  geom_point(size = 3, color = 'darkblue')+
+  geom_vline(xintercept = 5, linetype = 'dashed', color = 'red', linewidth=1 )+
+  labs(title = 'VIF of variables', y ='variable')+
+  theme_classic()
 ```
+
+We assess multicollinearity using variance inflation factors (VIF). Values exceeding 5 are often used as thresholds to indicate high collinearity. The VIF results here do not indicate problematic collinearity.
+
+
 
 ### Model selection 
-#### Apply forward, backward, and bidirection
-```{r}
-reg <- regsubsets(
-  real_cost ~ group + year+ length + stations+ ppp_rate+duration,
-  data = df,
-  nbest = 1,
-  nvmax = 13
-)
-reg_summary <- summary(reg)
-bic_min_index <- which.min(reg_summary$bic)
-bic_min_model <- reg_summary$which[bic_min_index, ]
-cp_min_index <- which.min(reg_summary$cp)
-cp_min_model <- reg_summary$which[cp_min_index, ]
-bic_min_model
-cp_min_model
-```
-BIC: Exclude duration
-Cp: Exclude duration + ppp_rate
+#### Backward model selection 
 
-
+To assess whether a simpler model provides similar explanatory power, we apply backward model selection using AIC starting from the transformed-response model. Because AIC balances model fit and complexity, smaller values indicate a better model.
 
 ```{r}
-step(full_trans,
-     direction = 'backward')
+step_fit <- step(full_trans,
+     direction = 'backward', trace  = 0)
+
+data.frame(
+  Initial_AIC = round(AIC(full_trans),2),
+  End_AIC = round(AIC(step_fit),2),
+  Equation = paste(deparse(formula(step_fit)), collapse = ''))%>%
+knitr::kable(caption = "Backward AIC selection summary")
+
+
+
+
 ```
 
-Choose not to remove any predictors
+
+
+**Selection result.** The backward AIC procedure does not remove any predictors, indicating that
+each variable contributes meaningfully to model fit under the AIC criterion. It indicates that removing any single predictor increases AIC relative to the full transformed model.
+
+
+
+### Final Model
+
+We proceed with the transformed-response model including all pre-specified predictors:
+
+\[
+\text{real\_cost}^{0.25} \sim
+\text{group} +
+\text{year} +
+\text{length} +
+\text{stations} +
+\text{ppp\_rate} +
+\text{duration}.
+\]
+
+This model achieves improved adherence to the regression assumptions after the transformation, including approximately constant variance and residuals that are closer to normally distributed. Retaining all predictors also preserves interpretability with respect to the study objective, allowing us to evaluate how project characteristics and geographic region jointly influence transit construction costs. Below is the full summary of the model.
+
+```{r}
+# coefficient table
+broom::tidy(full_trans) %>%
+  dplyr::select(term, estimate, std.error, p.value) %>% 
+  knitr::kable(digits = 3,caption = "Summary of the transformed regression model.")
+
+# model fit
+broom::glance(full_trans) %>%
+  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
+  knitr::kable(digit = 3)
+
+```
+
+
 
 
 
