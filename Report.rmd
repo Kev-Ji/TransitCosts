@@ -241,6 +241,8 @@ broom::glance(full_trans) %>%
 
 ### Spatial and Cultural Predictors (Kevin Ji)
 
+A particular concern for our prior models is spatial autocorrelation. There is strong reason to believe that the presence of transit in neighboring countries could disincentivise or incentivise countries to build it themselves. If a country's passenger rail buildout is successful, it encourages neighbors to invest in rail projects themselves. Certain countries have legal frameworks or cultural biases that discourage infrastructure investments like transit, and these features are often shared among neighboring countries. Spatial autocorrelation may also capture the aspects of geography that make it more costly or inexpensive to build in certain regions, such as soil quality or climate. 
+
 ```{r fullmerge, echo = FALSE}
 
 colnames(transit_cost) <- c("e", "ISO", "city", "line",
@@ -251,28 +253,7 @@ colnames(transit_cost) <- c("e", "ISO", "city", "line",
 
 ```
 
-```{r culture model, echo = FALSE, warning = FALSE}
-
-transit.culture <- merge(transit_cost, culture)
-
-transit.culture <- transit.culture %>% 
-    mutate(real_cost = as.numeric(real_cost)) %>% 
-    mutate(rr = as.factor(rr)) %>% 
-    filter(end_year <= 2026) %>%
-    mutate(duration = as.numeric(end_year) - as.numeric(start_year)) %>%
-    mutate(longtermview = as.numeric(ltowvs),
-    uncertainty = as.numeric(uai),
-    competitive = as.numeric(mas),
-    power_distance = as.numeric(pdi),
-    individual = as.numeric(ivr))
-
-multicheck <- lm(cost_km_millions ~ longtermview + 
-uncertainty + competitive + power_distance + 
-individual, data = transit.culture)
-
-long_term <- lm(1/cost_km_millions ~ longtermview + uncertainty + competitive +
-power_distance + individual + rr + tunnel_per + stations + duration, data = transit.culture)
-```
+To model spatial autocorrelation, we import shapefiles from the 
 
 ```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE, include = FALSE}
 
@@ -358,6 +339,42 @@ Some econometric procedures recommending accounting for spatial autocorrelation 
 # effective N for spatial autocorrelation
 I <- mc$statistic
 eff_n <- nrow(transit_cost)*((1-I)/(1+I))
+```
+
+```{r culture model, echo = FALSE, warning = FALSE}
+colnames(clean_transit)[[1]] <- "e"
+colnames(clean_transit)[[2]] <- "ISO"
+transit.culture <- merge(clean_transit, culture)
+
+transit.culture <- transit.culture %>% 
+    mutate(real_cost = as.numeric(real_cost)) %>% 
+    mutate(rr = as.factor(rr)) %>% 
+    filter(end_year <= 2026) %>%
+    mutate(duration = as.numeric(end_year) - as.numeric(start_year)) %>%
+    mutate(longtermview = as.numeric(ltowvs),
+    uncertainty = as.numeric(uai),
+    competitive = as.numeric(mas),
+    power_distance = as.numeric(pdi),
+    individual = as.numeric(ivr))
+
+multicheck <- lm(cost_km_millions ~ longtermview + 
+uncertainty + competitive + power_distance + 
+individual, data = transit.culture)
+
+
+
+long_term <- lm(log(cost_km_millions) ~  uncertainty + power_distance + competitive + year + length + ppp_rate + rr + tunnel_per + length + duration + group, data = transit.culture)
+
+vif(long_term)
+
+ncvTest(long_term)
+wts <- 1/(abs(rstandard(long_term)))
+
+weighted_socio <- merge(transit.culture, as.data.frame(wts), by = "row.names")
+
+final <- lm(log(cost_km_millions) ~  uncertainty + year + competitive + rr + tunnel_per + length + ppp_rate + duration + group, data = weighted_socio, weights = wts)
+
+
 ```
 
 ## Conclusion

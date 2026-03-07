@@ -6,7 +6,7 @@ An analysis of factors that affect the total cost of transit projects across the
 **Country Shapefile Source:** https://hub.arcgis.com/datasets/esri::world-countries-generalized  
 **Country Categories**: https://datatopics.worldbank.org/sdgatlas/archive/2017/the-world-by-region.html
 **Geert Hofstede dimensions of national culture**: https://geerthofstede.com/research-and-vsm/dimension-data-matrix/
-
+Citation for WLS and HC combination: https://www.sciencedirect.com/science/article/pii/S030440761630197X 
 
 
 ### Data Dictionary
