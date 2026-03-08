@@ -1,0 +1,10 @@
+```{r}
+transit.data <- read.csv("transit.data.csv")
+library(tidyverse)
+View(transit.data)
+```
+
+```{r}
+costcapita <- lm(Cost.km..Millions. ~ Country, data = transit.data)
+summary(costcapita)
+```

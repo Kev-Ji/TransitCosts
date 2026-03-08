@@ -4,6 +4,7 @@ library(sf)
 library(spdep)
 library(car)
 library(alr4)
+library(MASS)
 library(leaps)
 library(gridExtra)
 library(countrycode)
@@ -18,7 +19,7 @@ colnames(culture)[[1]] <- "ISO"
 ```{r data cleaning, include = FALSE}
 
 clean_transit <- transit_cost %>%
-  select(c(e, country, city, start_year, end_year, rr, length, 
+  dplyr::select(c(e, country, city, start_year, end_year, rr, length, 
   tunnel_per, tunnel, stations, year, ppp_rate, real_cost,
    cost_km_millions)) %>%
   filter(!is.na(e) & real_cost != 0)
@@ -135,7 +136,7 @@ And the sum notes the effect of the regional group the project it belongs to. Th
 
 ### Model 2 - Cost Prediction
 $$
-Y_i^{\frac 1 4 } = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \beta_4X_{4i} + \beta_5X_{5i} + \beta_6X_{6i} + \beta_7_{7i} +\beta_8_{8i} + \beta_9_{9i} + \beta_{10}_{10i} + \beta_{11}_{11i}
+Y_i^{\frac 1 4 } = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \beta_4X_{4i} + \beta_5X_{5i} + \beta_6X_{6i} + \beta_7X_{7i} +\beta_8X_{8i} + \beta_9X_{9i} + \beta_{10}X_{10i} + \beta_{11}X_{11i}
 $$
 Where:
 $Y_{i} =$ The real cost of a project. Real cost is the nominal cost adjusted based on inflation indexes between countries.
@@ -293,7 +294,8 @@ norm <- lm(log(project.speed) ~ real_cost + group + rr + stations, data = speed)
 
 proj_spd <-lm(log(project.speed) ~ real_cost + group + rr + stations + uncertainty + power_distance + competitive, data = speed)
 
-```### Model 3 -
+```
+### Model 3 -
 
 ### Model 4 - 
 
