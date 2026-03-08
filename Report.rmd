@@ -343,7 +343,7 @@ Though there isn't one lone model all metrics agree on, subset 6 has satisfactor
 
 speedMdl <- lm(project_speed ~ log(real_cost) + rr + length + stations + group, data = df_speed)
 summary(speedMdl)
-plot(speedMdl)
+plot(speedMdl, which = c(2, 5))
 
 #test for multicollinearity
 vif(speedMdl)
@@ -356,14 +356,13 @@ Apart from some potential outliers and a bit of skewing on the Q-Q plots, there 
 
 speedMdl2 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed)
 summary(speedMdl2)
-plot(speedMdl2, which = c(1, 5))
 vif(speedMdl2)
 
 ```
 
 #### Outliers
 
-Our updated model doesn't appear to have issues with multicollinearity. The residuals plot looks fine but we see some points with high leverage and high residuals. Let's take a closer look at these points to determine whether they should be removed as outliers.  
+Our updated model doesn't appear to have issues with multicollinearity. We now test for and clear outliers.  
 
 ```{r outlierCheck}
 
@@ -377,7 +376,6 @@ These observations have some of the fastest `project_speed`, longest `length`, a
 ```{r outlierUpdate}
 
 speedMdl3 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed[-c(231, 377, 383,384),])
-plot(speedMdl3, which = 5)
 outlierTest(speedMdl3)
 
 #We still see outliers, so we clear them out one more time
@@ -385,9 +383,8 @@ outlierTest(speedMdl3)
 df_speed2 <- df_speed[-c(231, 377, 383,384),]
 
 speedMdl4 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed2[-c(98, 102, 302, 379, 343),])
-plot(speedMdl4, which = c(2,5))
 
-#Nothing glaring in the residuals vs leverage plot, so we're done with outliers. However, the Q-Q plot is skewed. Let's fix that:  
+# We should be done with outliers. Recall that the Q-Q plot was skewed. Let's fix that:  
 
 boxcox(speedMdl4)
 
@@ -402,9 +399,8 @@ speedMdl_fin <- lm(speed ~ log(real_cost) + rr + length + group, data = df_speed
 
 #Last checks:
 
-plot(speedMdl_fin)
+plot(speedMdl_fin, which = c(1, 2, 5))
 vif(speedMdl_fin)
-outlierTest(speedMdl_fin)
 
 ```
 
