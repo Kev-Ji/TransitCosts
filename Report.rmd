@@ -66,7 +66,24 @@ df <- df[!is.na(df$tunnel_per), ]
 ```
 
 
-# Transit Costs across the World
+
+\title{\textbf{Title}}
+\author{
+    Sangey Rinchen \\
+    Blake Xu \\
+    Kevin Ji
+    \vspace{0.3cm}
+    \textit{Stat 423: Applied Linear Regression}
+}
+\date{\today}
+
+\begin{abstract}
+\noindent Write a concise summary of your project here (usually 150-250 words). It should state the research question, briefly describe the data, mention the primary linear regression models used, and summarize the key findings and conclusions.
+\end{abstract}
+
+## Introduction
+
+
 
 ## Data
 
@@ -74,11 +91,13 @@ Our transit data comes from the Transit Costs Project collaboration at the NYU M
 
 To account for spatial factors, country shapefiles from a public ArcGIS dataset were merged into the . The map projection used in the dataset is the Mercator projection, which emphasizes accuracy of shape over size. The final dataset that was merged with the transit dataset was a cross-cultural psychology dataset from social psychologist Geert Hofstede. This dataset includes Hofstede's rankings of countries along six cultural dimensions: individualism-collectivism, uncertainty avoidance, strength of social hierarchy (called 'power-distance'), motivation toward achievement and success (formerly masculine v. feminine), and long-term vs. short term orientation. The observations in the Hofstede dataset were individual countries (or groupings of countries such as "Arab states").
 
-
+## Exploratory Analysis
 
 ## Methodology 
 
-Three models were fit to the combined data.
+Three models were fit to the combined data. Each of these models tackle each of our connected research questions.
+
+All of our models encode 
 
 ### Model 1 - Project Speed
 
@@ -94,160 +113,22 @@ And the sum notes the effect of the regional group the project it belongs to. Th
 
 ### Model 2 - Cost Prediction
 $$
-Y_i = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \beta_4X_{4i} + 
+Y_i^{\frac 1 4 } = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \beta_4X_{4i} + \beta_5X_{5i} + \beta_6X_{6i} + \beta_7_{7i} +\beta_8_{8i} + \beta_9_{9i} + \beta_{10}_{10i} + \beta_{11}_{11i}
 $$
+Where:
+$Y_{i} =$ The real cost of a project. Real cost is the nominal cost adjusted based on inflation indexes between countries.
+$X_{1i}, X_{2i}, \dots, X_{6i}$ are dummy variables for the region group the country belongs in.
+$X_{7i} = $ Midpoint year of construction for the project
+$X_{8i} = $ Length of transit route built (km)
+$X_{9i} = $ Number of stations built
+$X_{10i} =$ Purchasing Power Parity (PPP), based on midpoint of construction
+$X_{11i} =$ Duration of transit project (years)
 
+To address non-constant variance and improve residual normality, a Box–Cox transformation was applied to the response variable. This subset of covariates was chosen through backward stepwise regression using AIC as the selection criteria. Cook's distance was used to identify outliers and VIF was used to assess multicollinearity but neither outliers or multicollinearity were identified in this model. After implementing the Box-Cox transformation, 
 
+### Accounting for spatial 
 
-## Results
-
-### Transit Project Duration
-
-### Cost Prediction ()
-
-#### Fit the baseline linear model
-We model **real construction cost** as a function of (i) geographic regions and
-(ii) key characteristics that are plausibly associated with cost: project year, length of line,
-number of stations, purchasing power parity (PPP), and construction duration.
-
-$$
-real\_cost \sim region + year + length + stations + ppp\_rate + duration
-$$
-
-The initial model statistics is
-
-```{r}
-full <- lm(real_cost ~ group + year+ length + stations+ ppp_rate+duration, data = df)
-
-broom::glance(full) %>%
-  dplyr::select(r.squared, sigma, AIC, BIC, nobs) %>%
-  knitr::kable(digits = 3, caption = "Model fit statistics")
-
-```
-Linear regression relies on zero means, constant error variance, and approximately normal residuals. We evaluate these using standard residual diagnostics. In the baseline model, residual plots indicate heteroskedasticity and departures from normality.
-
-
-
-#### Diagnostic assessment of modeling assumptions
-
-
-```{r baseline_diagnostics, fig.height=3, fig.width=5}
-par(mfrow = c(2,2), mar=c(3,3,2,1))
-plot(full, which = 1)
-plot(full, which = 2)
-plot(full, which = 4)
-hist(resid(full), main = "Residuals", xlab = "")
-par(mfrow = c(1,1))
-```
-
-
-
-
-
-#### Transformation via BoxCox
-To address non-constant variance and improve residual normality, we apply a Box–Cox transformation
-to the strictly positive response.
-
-
-```{r boxcox, fig.width=4, fig.height=3}
-library(MASS)
-df_pos <- df %>% filter(real_cost > 0)
-full_pos <- lm(real_cost ~ group + year + length + stations + ppp_rate + duration, data = df_pos)
-par(mar = c(3,3,2,1))
-MASS::boxcox(full_pos, plotit = TRUE) ### The result turns out that we should raise y to power of 0.25
-```
-
-The Box–Cox log-likelihood plot suggests a transformation near $\lambda \approx 0.25$, so we proceed with $Y^{0.25}$
-
-#### Refit our model and check conditions again. 
-
-
-```{r residual plot,fig.width=5, fig.height=3}
-full_trans <- lm(real_cost^0.25 ~ group + year+ length + stations+ ppp_rate+duration, data = df)
-#summary(full_trans)
-
-par(mfrow = c(2,2), mar=c(3,3,2,1))
-plot(full_trans, which = 1)
-plot(full_trans, which = 2)
-plot(full_trans, which = 4)
-hist(resid(full_trans), main = "Residuals", xlab = "")
-par(mfrow = c(1,1))
-
-```
-
-
-After transformation, the residual diagnostics improve noticeably. The TA plot suggests more constant variance, and the Q–Q plot shows residuals closer to normality.
-
-We also examine influential observations. Although some points have larger standardized residuals, influence depends on both residual size and leverage, summarized by Cook’s distance. All Cook’s distances are well below common thresholds, 0.5, so no observations are removed.
-
-
-#### Multicollinearity assessment
-```{r VIF, fig.width=3, fig.height=2}
-v <- vif(full_trans)
-
-vif_df <- data.frame(
-  variable = rownames(v),
-  vif = v[,3]
-)
-
-
-ggplot(vif_df, aes(x = vif, y = reorder(variable, vif)))+
-  geom_point(size = 3, color = 'darkblue')+
-  geom_vline(xintercept = 5, linetype = 'dashed', color = 'red', linewidth=1 )+
-  labs(title = 'VIF of variables', y ='variable')+
-  theme_classic()
-```
-
-We assess multicollinearity using variance inflation factors (VIF). Values exceeding 5 are often used as thresholds to indicate high collinearity. The VIF results here do not indicate problematic collinearity.
-
-
-
-#### Model selection 
-#### Backward model selection 
-
-To assess whether a simpler model provides similar explanatory power, we apply backward model selection using AIC starting from the transformed-response model. Because AIC balances model fit and complexity, smaller values indicate a better model.
-
-```{r stepwise regression}
-step_fit <- step(full_trans,
-     direction = 'backward', trace  = 0)
-
-data.frame(
-  Initial_AIC = round(AIC(full_trans),2),
-  End_AIC = round(AIC(step_fit),2),
-  Equation = paste(deparse(formula(step_fit)), collapse = ''))%>%
-knitr::kable(caption = "Backward AIC selection summary")
-
-```
-
-
-
-**Selection result.** The backward AIC procedure does not remove any predictors, indicating that
-each variable contributes meaningfully to model fit under the AIC criterion. It indicates that removing any single predictor increases AIC relative to the full transformed model.
-
-
-
-### Final Model
-
-We proceed with the transformed-response model including all pre-specified predictors:
-
-This model achieves improved adherence to the regression assumptions after the transformation, including approximately constant variance and residuals that are closer to normally distributed. Retaining all predictors also preserves interpretability with respect to the study objective, allowing us to evaluate how project characteristics and geographic region jointly influence transit construction costs. Below is the full summary of the model.
-
-```{r}
-# coefficient table
-broom::tidy(full_trans) %>%
-  dplyr::select(term, estimate, std.error, p.value) %>% 
-  knitr::kable(digits = 3,caption = "Summary of the transformed regression model.")
-
-# model fit
-broom::glance(full_trans) %>%
-  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
-  knitr::kable(digit = 3)
-
-```
-
-### Spatial and Cultural Predictors (Kevin Ji)
-
-A particular concern for our prior models is spatial autocorrelation. There is strong reason to believe that the presence of transit in neighboring countries could disincentivise or incentivise countries to build it themselves. If a country's passenger rail buildout is successful, it encourages neighbors to invest in rail projects themselves. Certain countries have legal frameworks or cultural biases that discourage infrastructure investments like transit, and these features are often shared among neighboring countries. Spatial autocorrelation may also capture the aspects of geography that make it more costly or inexpensive to build in certain regions, such as soil quality or climate. 
+A particular concern for our dataset is spatial autocorrelation. There is strong reason to believe that the presence of transit in neighboring countries could disincentivise or incentivise countries to build it themselves. If a country's passenger rail buildout is successful, it encourages neighbors to invest in rail projects themselves. Certain countries have legal frameworks or cultural biases that discourage infrastructure investments like transit, and these features are often shared among neighboring countries. Spatial autocorrelation may also capture the aspects of geography that make it more costly or inexpensive to build in certain regions, such as soil quality or climate. 
 
 ```{r fullmerge, echo = FALSE}
 
@@ -259,7 +140,7 @@ colnames(transit_cost) <- c("e", "ISO", "city", "line",
 
 ```
 
-To model spatial autocorrelation, we import shapefiles from the 
+To model spatial autocorrelation, we use the shapefiles to
 
 ```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE, include = FALSE}
 
@@ -362,16 +243,13 @@ I <- mc$statistic
 eff_n <- nrow(transit_cost)*((1-I)/(1+I))
 ```
 
-```{r culture model, echo = FALSE, warning = FALSE}
-
+```{r real cost - culture model, echo = FALSE, warning = FALSE}
 
 multicheck <- lm(cost_km_millions ~ longtermview + 
 uncertainty + competitive + power_distance + 
 individual, data = transit.culture)
 
-
-
-long_term <- lm(log(cost_km_millions) ~  uncertainty + power_distance + competitive + year + length + ppp_rate + rr + tunnel_per + length + duration + group, data = transit.culture)
+long_term <- lm(real_cost^0.25 ~  uncertainty + power_distance + competitive + year + length + ppp_rate + rr + tunnel_per + length + duration + group, data = transit.culture)
 
 vif(long_term)
 
@@ -380,10 +258,173 @@ wts <- 1/(abs(rstandard(long_term)))
 
 weighted_socio <- merge(transit.culture, as.data.frame(wts), by = "row.names")
 
-final <- lm(log(cost_km_millions) ~  uncertainty + year + competitive + rr + tunnel_per + length + ppp_rate + duration + group, data = weighted_socio, weights = wts)
-
+final <- lm(real_cost^0.25 ~  uncertainty + year + competitive + rr + tunnel_per + length + ppp_rate + duration + group, data = weighted_socio, weights = wts)
 
 ```
+
+```{r project speed - culture model, echo = FALSE, warning = FALSE}
+
+speed <- transit.culture[-c(287, 306),] %>% 
+          mutate(project.speed = length/duration)
+
+norm <- lm(log(project.speed) ~ real_cost + group + rr + stations, data = speed)
+
+proj_spd <-lm(log(project.speed) ~ real_cost + group + rr + stations + uncertainty + power_distance + competitive, data = speed)
+
+```
+
+## Results
+
+
+
+### Cost Prediction ()
+
+#### Fit the baseline linear model
+We model **real construction cost** as a function of (i) geographic regions and
+(ii) key characteristics that are plausibly associated with cost: project year, length of line,
+number of stations, purchasing power parity (PPP), and construction duration.
+
+$$
+real\_cost \sim region + year + length + stations + ppp\_rate + duration
+$$
+
+The initial model statistics is
+
+```{r}
+full <- lm(real_cost ~ group + year+ length + stations+ ppp_rate+duration, data = df)
+
+broom::glance(full) %>%
+  dplyr::select(r.squared, sigma, AIC, BIC, nobs) %>%
+  knitr::kable(digits = 3, caption = "Model fit statistics")
+
+```
+Linear regression relies on zero means, constant error variance, and approximately normal residuals. We evaluate these using standard residual diagnostics. In the baseline model, residual plots indicate heteroskedasticity and departures from normality.
+
+
+
+#### Diagnostic assessment of modeling assumptions
+
+
+```{r baseline_diagnostics, fig.height=3, fig.width=5}
+par(mfrow = c(2,2), mar=c(3,3,2,1))
+plot(full, which = 1)
+plot(full, which = 2)
+plot(full, which = 4)
+hist(resid(full), main = "Residuals", xlab = "")
+par(mfrow = c(1,1))
+```
+
+
+
+
+
+#### Transformation via BoxCox
+
+
+
+```{r boxcox, fig.width=4, fig.height=3}
+library(MASS)
+df_pos <- df %>% filter(real_cost > 0)
+full_pos <- lm(real_cost ~ group + year + length + stations + ppp_rate + duration, data = df_pos)
+par(mar = c(3,3,2,1))
+MASS::boxcox(full_pos, plotit = TRUE) ### The result turns out that we should raise y to power of 0.25
+```
+
+The Box–Cox log-likelihood plot suggests a transformation near $\lambda \approx 0.25$, so we proceed with $Y^{0.25}$
+
+#### Refit our model and check conditions again. 
+
+
+```{r residual plot,fig.width=5, fig.height=3}
+full_trans <- lm(real_cost^0.25 ~ group + year+ length + stations+ ppp_rate+duration, data = df)
+#summary(full_trans)
+
+par(mfrow = c(2,2), mar=c(3,3,2,1))
+plot(full_trans, which = 1)
+plot(full_trans, which = 2)
+plot(full_trans, which = 4)
+hist(resid(full_trans), main = "Residuals", xlab = "")
+par(mfrow = c(1,1))
+
+```
+
+
+After transformation, the residual diagnostics improve noticeably. The TA plot suggests more constant variance, and the Q–Q plot shows residuals closer to normality.
+
+We also examine influential observations. Although some points have larger standardized residuals, influence depends on both residual size and leverage, summarized by Cook’s distance. All Cook’s distances are well below common thresholds, 0.5, so no observations are removed.
+
+
+#### Multicollinearity assessment
+```{r VIF, fig.width=3, fig.height=2}
+v <- vif(full_trans)
+
+vif_df <- data.frame(
+  variable = rownames(v),
+  vif = v[,3]
+)
+
+
+ggplot(vif_df, aes(x = vif, y = reorder(variable, vif)))+
+  geom_point(size = 3, color = 'darkblue')+
+  geom_vline(xintercept = 5, linetype = 'dashed', color = 'red', linewidth=1 )+
+  labs(title = 'VIF of variables', y ='variable')+
+  theme_classic()
+```
+
+We assess multicollinearity using variance inflation factors (VIF). Values exceeding 5 are often used as thresholds to indicate high collinearity. The VIF results here do not indicate problematic collinearity.
+
+
+
+#### Model selection 
+#### Backward model selection 
+
+To assess whether a simpler model provides similar explanatory power, we apply backward model selection using AIC starting from the transformed-response model. Because AIC balances model fit and complexity, smaller values indicate a better model.
+
+```{r stepwise regression}
+step_fit <- step(full_trans,
+     direction = 'backward', trace  = 0)
+
+data.frame(
+  Initial_AIC = round(AIC(full_trans),2),
+  End_AIC = round(AIC(step_fit),2),
+  Equation = paste(deparse(formula(step_fit)), collapse = ''))%>%
+knitr::kable(caption = "Backward AIC selection summary")
+
+```
+
+
+
+**Selection result.** The backward AIC procedure does not remove any predictors, indicating that
+each variable contributes meaningfully to model fit under the AIC criterion. It indicates that removing any single predictor increases AIC relative to the full transformed model.
+
+
+
+### Final Model
+
+We proceed with the transformed-response model including all pre-specified predictors:
+
+This model achieves improved adherence to the regression assumptions after the transformation, including approximately constant variance and residuals that are closer to normally distributed. Retaining all predictors also preserves interpretability with respect to the study objective, allowing us to evaluate how project characteristics and geographic region jointly influence transit construction costs. Below is the full summary of the model.
+
+```{r}
+# coefficient table
+broom::tidy(full_trans) %>%
+  dplyr::select(term, estimate, std.error, p.value) %>% 
+  knitr::kable(digits = 3,caption = "Summary of the transformed regression model.")
+
+# model fit
+broom::glance(full_trans) %>%
+  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
+  knitr::kable(digit = 3)
+
+```
+
+### Spatial and Cultural Predictors (Kevin Ji)
+
+
+
+
+
+
 
 ## Conclusion
 
