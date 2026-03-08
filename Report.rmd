@@ -70,11 +70,22 @@ df <- df[!is.na(df$tunnel_per), ]
 
 ## Data
 
-Our data comes from the Transit Costs Project collaboration. Academics across the world have contributed as
+Our transit data comes from the Transit Costs Project collaboration at the NYU Marron Institute of Urban Management. The express purpose of this dataset is to document the costs of transit projects across the world for international comparison. The transit projects under consideration all involve a railway, including light rail, trams, rapid transit/metro systems, and heavy rail (the meaning of this terminology changes based on local vernacular). This means busses, ferries, rideshare, bikes or other forms of transportation are not included in the dataset. This data was compiled by academic researchers and documents transit projects from . Each observation is a unique transit project undertaken by that country 
 
-## Research Questions
+To account for spatial factors, country shapefiles from a public ArcGIS dataset were merged into the . The map projection used in the dataset is the Mercator projection, which emphasizes accuracy of shape over size. The final dataset that was merged with the transit dataset was a cross-cultural psychology dataset from social psychologist Geert Hofstede. This dataset includes Hofstede's rankings of countries along six cultural dimensions: individualism-collectivism, uncertainty avoidance, strength of social hierarchy (called 'power-distance'), motivation toward achievement and success (formerly masculine v. feminine), and long-term vs. short term orientation. The observations in the Hofstede dataset were individual countries (or groupings of countries such as "Arab states").
+
+
 
 ## Methodology 
+
+Three models were fit to the combined data.
+
+### 
+
+### Model 2 - Cost Prediction
+$$
+Y_i = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \beta_4X_{4i} + 
+$$
 
 
 
@@ -137,11 +148,6 @@ MASS::boxcox(full_pos, plotit = TRUE) ### The result turns out that we should ra
 ```
 
 The Box–Cox log-likelihood plot suggests a transformation near $\lambda \approx 0.25$, so we proceed with $Y^{0.25}$
- 
-
-$$
-real\_cost^{0.25} \sim region + year + length + stations + ppp\_rate + duration
-$$
 
 #### Refit our model and check conditions again. 
 
@@ -213,16 +219,6 @@ each variable contributes meaningfully to model fit under the AIC criterion. It 
 ### Final Model
 
 We proceed with the transformed-response model including all pre-specified predictors:
-
-\[
-\text{real\_cost}^{0.25} \sim
-\text{group} +
-\text{year} +
-\text{length} +
-\text{stations} +
-\text{ppp\_rate} +
-\text{duration}.
-\]
 
 This model achieves improved adherence to the regression assumptions after the transformation, including approximately constant variance and residuals that are closer to normally distributed. Retaining all predictors also preserves interpretability with respect to the study objective, allowing us to evaluate how project characteristics and geographic region jointly influence transit construction costs. Below is the full summary of the model.
 
@@ -297,6 +293,21 @@ moran.plot(as.numeric(scale(medshp$Median_Cost)), listw=medshp_wts,
 ```
 
 ```{r spatiosocial, echo = FALSE}
+colnames(clean_transit)[[1]] <- "e"
+colnames(clean_transit)[[2]] <- "ISO"
+transit.culture <- merge(clean_transit, culture)
+
+transit.culture <- transit.culture %>% 
+    mutate(real_cost = as.numeric(real_cost)) %>% 
+    mutate(rr = as.factor(rr)) %>% 
+    filter(end_year <= 2026) %>%
+    mutate(duration = as.numeric(end_year) - as.numeric(start_year)) %>%
+    mutate(longtermview = as.numeric(ltowvs),
+    uncertainty = as.numeric(uai),
+    competitive = as.numeric(mas),
+    power_distance = as.numeric(pdi),
+    individual = as.numeric(ivr))
+    
 socio <- transit.culture %>% 
     group_by(ISO) %>%
     summarize(ltv = (abs(median(longtermview))),
@@ -342,20 +353,7 @@ eff_n <- nrow(transit_cost)*((1-I)/(1+I))
 ```
 
 ```{r culture model, echo = FALSE, warning = FALSE}
-colnames(clean_transit)[[1]] <- "e"
-colnames(clean_transit)[[2]] <- "ISO"
-transit.culture <- merge(clean_transit, culture)
 
-transit.culture <- transit.culture %>% 
-    mutate(real_cost = as.numeric(real_cost)) %>% 
-    mutate(rr = as.factor(rr)) %>% 
-    filter(end_year <= 2026) %>%
-    mutate(duration = as.numeric(end_year) - as.numeric(start_year)) %>%
-    mutate(longtermview = as.numeric(ltowvs),
-    uncertainty = as.numeric(uai),
-    competitive = as.numeric(mas),
-    power_distance = as.numeric(pdi),
-    individual = as.numeric(ivr))
 
 multicheck <- lm(cost_km_millions ~ longtermview + 
 uncertainty + competitive + power_distance + 
