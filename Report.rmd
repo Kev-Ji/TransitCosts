@@ -85,6 +85,19 @@ We create three new variables:
 
 ## Introduction
 
+### Project Goal
+To analyze and compare transit projects around the world to understand the factors that affect the cost and speeds of projects around the world, including the additional impact of geographic or cultural factors.
+
+### Research Questions
+#### 1. Project Speed
+What variables are significant when predicting the speed at which transit projects are completed? 
+
+#### 2. Project Cost
+Which variables are significant when predicting the cost of a transit project? 
+
+#### 3. Spatial and Cultural factors
+Are spatial and cultural factors significant for models that predict the cost and speed of a project? 
+
 ## Methodology 
 
 Three models were fit to the combined data.
@@ -106,7 +119,9 @@ $$
 Y_i = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \beta_4X_{4i} + 
 $$
 
+### Model 3 -
 
+### Model 4 - 
 
 ## Results
 
