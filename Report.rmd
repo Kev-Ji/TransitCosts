@@ -1,3 +1,13 @@
+---
+title: "Placeholder"
+author: Sangey Rinchen, Blake Xu, Kevin Ji
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    number_sections: true
+---
+
+
 ```{r setup, include = FALSE}
 library(tidyverse)
 library(sf)
@@ -32,7 +42,7 @@ clean_transit <- clean_transit %>%
 
 ```
 
-```{r region mapping}
+```{r region mapping, include = F}
 
 gb <- filter(clean_transit, clean_transit$country == "UK") %>%
   mutate(country = "GB")
@@ -47,7 +57,7 @@ clean_transit$region <- countrycode(sourcevar = clean_transit$country,
 
 ```
 
-```{r region_merge}
+```{r region_merge, include = F}
 
 clean_transit <- clean_transit %>%
   mutate(group = case_when(
@@ -64,17 +74,6 @@ df <- clean_transit
 df <- df[!is.na(df$tunnel_per), ]
 ```
 
-
-
-\title{\textbf{Title}}
-\author{
-    Sangey Rinchen \\
-    Blake Xu \\
-    Kevin Ji
-    \vspace{0.3cm}
-    \textit{Stat 423: Applied Linear Regression}
-}
-\date{\today}
 
 \begin{abstract}
 \noindent Write a concise summary of your project here (usually 150-250 words). It should state the research question, briefly describe the data, mention the primary linear regression models used, and summarize the key findings and conclusions.
@@ -103,20 +102,54 @@ We create three new variables:
 To analyze and compare transit projects around the world to understand the factors that affect the cost and speeds of projects around the world, including the additional impact of geographic or cultural factors.
 
 ### Research Questions
-#### 1. Project Speed
+1. Project Speed
 What variables are significant when predicting the speed at which transit projects are completed? 
 
-#### 2. Project Cost
+2. Project Cost
 Which variables are significant when predicting the cost of a transit project? 
 
-#### 3. Spatial and Cultural factors
+3. Spatial and Cultural factors
 Are spatial and cultural factors significant for models that predict the cost and speed of a project? 
 
 ## Methodology 
 
+```{r project speed model setup, include = F}
+df_speed <- df %>%
+  filter(!is.na(duration)) %>%
+  mutate(project_speed = length / duration)
+
+rownames(df_speed) <- NULL #resetting row names
+
+speedMdl <- lm(project_speed ~ log(real_cost) + rr + length + stations + group, data = df_speed)
+
+speedMdl2 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed)
+
+speedMdl3 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed[-c(231, 377, 383,384),])
+
+df_speed2 <- df_speed[-c(231, 377, 383,384),]
+
+speedMdl4 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed2[-c(98, 102, 302, 379, 343),])
+
+df_speed3 <- df_speed2 %>%
+  mutate(speed = sqrt(project_speed))
+speedMdl_fin <- lm(speed ~ log(real_cost) + rr + length + group, data = df_speed3[-c(98, 102, 302, 379, 343),])
+
+```
+
+```{r cost projection model setup, include = F}
+df_pos <- df %>% filter(real_cost > 0)
+
+full_pos <- lm(real_cost ~ group + year + length + stations + ppp_rate + duration, data = df_pos)
+
+full_trans <- lm(real_cost^0.25 ~ group + year+ length + stations+ ppp_rate+duration, data = df)
+
+```
+
 Three models were fit to the combined data. Each of these models tackle each of our connected research questions.
 
 All of our models encode 
+
+
 
 ### Model 1 - Project Speed
 
@@ -130,6 +163,15 @@ $X_{2i}$ = length of the project in km
 $X_{3i}$ = indicator of whether the project is based on railroad or not (0 if not, 1 if yes)
 And the sum notes the effect of the regional group the project it belongs to. There are 7 regional groups, with the base case being the Americas
 
+```{r Project Speed Plot, echo = F, fig.width=9, fig.height=6, out.width="100%", out.height="300px"}
+par(mfrow = c(2,2), mar = c(4,4,2,1))
+# vif(speedMdl)
+plot(speedMdl2, 4)
+boxcox(speedMdl4)
+plot(speedMdl_fin, 1)
+
+```
+
 ### Model 2 - Cost Prediction
 $$
 Y_i^{\frac 1 4 } = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \beta_4X_{4i} + \beta_5X_{5i} + \beta_6X_{6i} + \beta_7X_{7i} +\beta_8X_{8i} + \beta_9X_{9i} + \beta_{10}X_{10i} + \beta_{11}X_{11i}
@@ -137,13 +179,28 @@ $$
 Where:
 $Y_{i} =$ The real cost of a project. Real cost is the nominal cost adjusted based on inflation indexes between countries.
 $X_{1i}, X_{2i}, \dots, X_{6i}$ are dummy variables for the region group the country belongs in.
-$X_{7i} = $ Midpoint year of construction for the project
-$X_{8i} = $ Length of transit route built (km)
-$X_{9i} = $ Number of stations built
+$X_{7i} =$ Midpoint year of construction for the project
+$X_{8i} =$ Length of transit route built (km)
+$X_{9i} =$ Number of stations built
 $X_{10i} =$ Purchasing Power Parity (PPP), based on midpoint of construction
 $X_{11i} =$ Duration of transit project (years)
 
-To address non-constant variance and improve residual normality, a Box–Cox transformation was applied to the response variable. This subset of covariates was chosen through backward stepwise regression using AIC as the selection criteria. Cook's distance was used to identify outliers and VIF was used to assess multicollinearity but neither outliers or multicollinearity were identified in this model. After implementing the Box-Cox transformation, 
+```{r Cost Prediction Plots, echo = F}
+par(mfrow = c(2,2))
+
+MASS::boxcox(full_pos, plotit = TRUE, xlab = expression(lambda))
+title(main = "Boxcox Plot")
+
+plot(full_trans, which = 1)
+plot(full_trans, which = 2)
+plot(full_trans, which = 4)
+
+```
+
+To address non-constant variance and improve residual normality, a Box–Cox transformation was applied to the response variable. This subset of covariates was chosen through backward stepwise regression using AIC as the selection criteria. Cook's distance was used to identify outliers and VIF was used to assess multicollinearity but neither outliers or multicollinearity were identified in this model.
+
+
+
 
 ### Accounting for spatial 
 
@@ -158,8 +215,6 @@ colnames(transit_cost) <- c("e", "ISO", "city", "line",
 'source2', 'reference')
 
 ```
-
-To model spatial autocorrelation, we use the shapefiles to
 
 ```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE, include = FALSE}
 
@@ -178,10 +233,14 @@ medshp_wts <- nb2listw(dist_nb, style = "W")
 
 ```
 
+To test for spatial autocorrelation, we would control for 
+
 ```{r neighbor plot}
 plot(st_geometry(medshp))
 plot(dist_nb, coords = st_coordinates(centroid), add = TRUE, col = "red")
 ```
+
+
 
 ```{r MC Test, include = FALSE}
 moran.test(medshp$Median_Cost, medshp_wts)    
@@ -202,7 +261,7 @@ moran.plot(as.numeric(scale(medshp$Median_Cost)), listw=medshp_wts,
 
 ```
 
-```{r spatiosocial, echo = FALSE}
+```{r spatiosocial, echo = FALSE, warning = FALSE}
 colnames(clean_transit)[[1]] <- "e"
 colnames(clean_transit)[[2]] <- "ISO"
 transit.culture <- merge(clean_transit, culture)
@@ -262,7 +321,7 @@ I <- mc$statistic
 eff_n <- nrow(transit_cost)*((1-I)/(1+I))
 ```
 
-```{r real cost - culture model, echo = FALSE, warning = FALSE}
+```{r real cost - culture model, echo = FALSE, warning = FALSE, include = F}
 
 multicheck <- lm(cost_km_millions ~ longtermview + 
 uncertainty + competitive + power_distance + 
@@ -281,7 +340,7 @@ final <- lm(real_cost^0.25 ~  uncertainty + year + competitive + rr + tunnel_per
 
 ```
 
-```{r project speed - culture model, echo = FALSE, warning = FALSE}
+```{r project speed - culture model, echo = FALSE, warning = FALSE, include = F}
 
 speed <- transit.culture[-c(287, 306),] %>% 
           mutate(project.speed = length/duration)
@@ -297,249 +356,9 @@ proj_spd <-lm(log(project.speed) ~ real_cost + group + rr + stations + uncertain
 
 ## Results
 
+The following is a coefficient table for the Cost Prediction model. Please leave interpretation of your final model's coefficients here.
 
-### Project Speed (Sangey Rinchen)
-
-With this model, we are interested in answering the question of whether or not a model can predict how quickly a transit project can be completed, and which predictors are required to answer that question. There isn't a specific variable for that in the dataset, so we begin by creating the variables we need and begin creating our model.  
-
-#### Data cleaning and the full model
-
-We need a variable for the project speed, which we calculate with the simple formula:  
-
-$$\frac{\text{length}}{\text{duration}}$$:  
-
-```{r speedData}
-
-df_speed <- df %>%
-  filter(!is.na(duration)) %>%
-  mutate(project_speed = length / duration)
-
-rownames(df_speed) <- NULL #resetting row names
-
-```
-
-We begin with our initial model, factoring in possible explanatory variables (a few such as year and duration are excluded, and attempt to find the best subset using BIC, adjusted R squared, and Mallow's $C_p$. Note that we use the natural log of the real cost to avoid any possible issues that may arise due to how much bigger the numbers in this variable are compared to the rest of the dataset.    
-
-```{r fullModel}
-
-subsets <- summary(regsubsets(project_speed ~ log(real_cost) + rr + length + 
-                      stations + cost_km_millions + group, nbest = 1, nvmax = 8, data = df_speed))
-subsets$adjr2
-subsets$cp
-subsets$bic
-subsets$outmat
-
-```
-
-Though there isn't one lone model all metrics agree on, subset 6 has satisfactory scores and will be used (though with all groups in the `group` variable present).  
-
-#### Building the model
-
-```{r speedModel}
-
-speedMdl <- lm(project_speed ~ log(real_cost) + rr + length + stations + group, data = df_speed)
-summary(speedMdl)
-plot(speedMdl, which = c(2, 5))
-
-#test for multicollinearity
-vif(speedMdl)
-
-```
-
-Apart from some potential outliers and a bit of skewing on the Q-Q plots, there isn't anything too concerning. However, we observe some collinearity between `length` and `stations`, understandable given that the two can be used to understand the size of the project in their own ways. Thus, we will remove the `stations` variable and diagnose our model.  
-
-```{r speedMdlUpdates}
-
-speedMdl2 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed)
-summary(speedMdl2)
-plot(speedMdl2, which = c(1, 5))
-vif(speedMdl2)
-
-```
-
-#### Outliers
-
-Our updated model doesn't appear to have issues with multicollinearity. We now test for and clear outliers. 
-
-```{r outlierCheck}
-
-outlierTest(speedMdl2)
-df_speed[c(231, 377, 383, 384),]
-
-```
-
-These observations have some of the fastest `project_speed`, longest `length`, and largest `real_cost` of any of the transit projects in the dataset. We will note these outliers, and remove them from our model for now.  
-
-```{r outlierUpdate}
-
-speedMdl3 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed[-c(231, 377, 383,384),])
-outlierTest(speedMdl3)
-
-#We still see outliers, so we clear them out one more time
-
-df_speed2 <- df_speed[-c(231, 377, 383,384),]
-
-speedMdl4 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed2[-c(98, 102, 302, 379, 343),])
-
-# We should be done with outliers. Recall that the Q-Q plot was skewed. Let's fix that:  
-
-boxcox(speedMdl4)
-
-```
-
-#### Final model
-```{r finalspeedModel}
-
-df_speed3 <- df_speed2 %>%
-  mutate(speed = log(project_speed))
-speedMdl_fin <- lm(speed ~ log(real_cost) + rr + length + group, data = df_speed3[-c(98, 102, 302, 379, 343),])
-
-#Last checks:
-
-plot(speedMdl_fin, which = c(1, 2, 5))
-vif(speedMdl_fin)
-
-```
-
-And so, our final model's coefficients are as follows:  
-```{r coefficients}
-
-speedMdl_fin$coefficients
-
-```
-
-On observation, it makes sense that the project would take longer if the lines involved setting up railroads (hence `rr1` has a negative coefficient). We observe a typically faster project completion speed in projects in Asia , and a slower completion speed in Europe.  
-
-
-### Cost Prediction ()
-
-#### Fit the baseline linear model
-We model **real construction cost** as a function of (i) geographic regions and
-(ii) key characteristics that are plausibly associated with cost: project year, length of line,
-number of stations, purchasing power parity (PPP), and construction duration.
-
-$$
-real\_cost \sim region + year + length + stations + ppp\_rate + duration
-$$
-
-The initial model statistics is
-
-```{r}
-full <- lm(real_cost ~ group + year+ length + stations+ ppp_rate+duration, data = df)
-
-broom::glance(full) %>%
-  dplyr::select(r.squared, sigma, AIC, BIC, nobs) %>%
-  knitr::kable(digits = 3, caption = "Model fit statistics")
-
-```
-Linear regression relies on zero means, constant error variance, and approximately normal residuals. We evaluate these using standard residual diagnostics. In the baseline model, residual plots indicate heteroskedasticity and departures from normality.
-
-
-
-#### Diagnostic assessment of modeling assumptions
-
-
-```{r baseline_diagnostics, fig.height=3, fig.width=5}
-par(mfrow = c(2,2), mar=c(3,3,2,1))
-plot(full, which = 1)
-plot(full, which = 2)
-plot(full, which = 4)
-hist(resid(full), main = "Residuals", xlab = "")
-par(mfrow = c(1,1))
-```
-
-
-
-
-
-#### Transformation via BoxCox
-
-
-
-```{r boxcox, fig.width=4, fig.height=3}
-library(MASS)
-df_pos <- df %>% filter(real_cost > 0)
-full_pos <- lm(real_cost ~ group + year + length + stations + ppp_rate + duration, data = df_pos)
-par(mar = c(3,3,2,1))
-MASS::boxcox(full_pos, plotit = TRUE) ### The result turns out that we should raise y to power of 0.25
-```
-
-The Box–Cox log-likelihood plot suggests a transformation near $\lambda \approx 0.25$, so we proceed with $Y^{0.25}$
-
-#### Refit our model and check conditions again. 
-
-
-```{r residual plot,fig.width=5, fig.height=3}
-full_trans <- lm(real_cost^0.25 ~ group + year+ length + stations+ ppp_rate+duration, data = df)
-#summary(full_trans)
-
-par(mfrow = c(2,2), mar=c(3,3,2,1))
-plot(full_trans, which = 1)
-plot(full_trans, which = 2)
-plot(full_trans, which = 4)
-hist(resid(full_trans), main = "Residuals", xlab = "")
-par(mfrow = c(1,1))
-
-```
-
-
-After transformation, the residual diagnostics improve noticeably. The TA plot suggests more constant variance, and the Q–Q plot shows residuals closer to normality.
-
-We also examine influential observations. Although some points have larger standardized residuals, influence depends on both residual size and leverage, summarized by Cook’s distance. All Cook’s distances are well below common thresholds, 0.5, so no observations are removed.
-
-
-#### Multicollinearity assessment
-```{r VIF, fig.width=3, fig.height=2}
-v <- vif(full_trans)
-
-vif_df <- data.frame(
-  variable = rownames(v),
-  vif = v[,3]
-)
-
-
-ggplot(vif_df, aes(x = vif, y = reorder(variable, vif)))+
-  geom_point(size = 3, color = 'darkblue')+
-  geom_vline(xintercept = 5, linetype = 'dashed', color = 'red', linewidth=1 )+
-  labs(title = 'VIF of variables', y ='variable')+
-  theme_classic()
-```
-
-We assess multicollinearity using variance inflation factors (VIF). Values exceeding 5 are often used as thresholds to indicate high collinearity. The VIF results here do not indicate problematic collinearity.
-
-
-
-#### Model selection 
-#### Backward model selection 
-
-To assess whether a simpler model provides similar explanatory power, we apply backward model selection using AIC starting from the transformed-response model. Because AIC balances model fit and complexity, smaller values indicate a better model.
-
-```{r stepwise regression}
-step_fit <- step(full_trans,
-     direction = 'backward', trace  = 0)
-
-data.frame(
-  Initial_AIC = round(AIC(full_trans),2),
-  End_AIC = round(AIC(step_fit),2),
-  Equation = paste(deparse(formula(step_fit)), collapse = ''))%>%
-knitr::kable(caption = "Backward AIC selection summary")
-
-```
-
-
-
-**Selection result.** The backward AIC procedure does not remove any predictors, indicating that
-each variable contributes meaningfully to model fit under the AIC criterion. It indicates that removing any single predictor increases AIC relative to the full transformed model.
-
-
-
-### Final Model
-
-We proceed with the transformed-response model including all pre-specified predictors:
-
-This model achieves improved adherence to the regression assumptions after the transformation, including approximately constant variance and residuals that are closer to normally distributed. Retaining all predictors also preserves interpretability with respect to the study objective, allowing us to evaluate how project characteristics and geographic region jointly influence transit construction costs. Below is the full summary of the model.
-
-```{r}
+```{r, echo = F}
 # coefficient table
 broom::tidy(full_trans) %>%
   dplyr::select(term, estimate, std.error, p.value) %>% 
@@ -552,15 +371,10 @@ broom::glance(full_trans) %>%
 
 ```
 
-### Spatial and Cultural Predictors (Kevin Ji)
-
-
-
-
-
-
 
 ## Conclusion
+
+## Appendix 
 
 
 
