@@ -90,6 +90,121 @@ ggplot(clean_transit) +
 
 ```
 
+### Project Speed (Sangey Rinchen)
+
+With this model, we are interested in answering the question of whether or not a model can predict how quickly a transit project can be completed, and which predictors are required to answer that question. There isn't a specific variable for that in the dataset, so we begin by creating the variables we need and begin creating our model.  
+
+#### Data cleaning and the full model
+
+We need a variable for the project speed, which we calculate with the simple formula:  
+
+$$\frac{\text{length}}{\text{duration}}$$:  
+
+```{r speedData}
+
+df_speed <- df %>%
+  filter(!is.na(duration)) %>%
+  mutate(project_speed = length / duration)
+
+rownames(df_speed) <- NULL #resetting row names
+
+```
+
+We begin with our initial model, factoring in possible explanatory variables (a few such as year and duration are excluded, and attempt to find the best subset using BIC, adjusted R squared, and Mallow's $C_p$. Note that we use the natural log of the real cost to avoid any possible issues that may arise due to how much bigger the numbers in this variable are compared to the rest of the dataset.    
+
+```{r fullModel}
+
+subsets <- summary(regsubsets(project_speed ~ log(real_cost) + rr + length + 
+                      stations + cost_km_millions + group, nbest = 1, nvmax = 8, data = df_speed))
+subsets$adjr2
+subsets$cp
+subsets$bic
+subsets$outmat
+
+```
+
+Though there isn't one lone model all metrics agree on, subset 6 has satisfactory scores and will be used (though with all groups in the `group` variable present).  
+
+#### Building the model
+
+```{r speedModel}
+
+speedMdl <- lm(project_speed ~ log(real_cost) + rr + length + stations + group, data = df_speed)
+summary(speedMdl)
+plot(speedMdl)
+
+#test for multicollinearity
+vif(speedMdl)
+
+```
+
+Apart from some potential outliers and a bit of skewing on the Q-Q plots, there isn't anything too concerning. However, we observe some collinearity between `length` and `stations`, understandable given that the two can be used to understand the size of the project in their own ways. Thus, we will remove the `stations` variable and diagnose our model.  
+
+```{r speedMdlUpdates}
+
+speedMdl2 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed)
+summary(speedMdl2)
+plot(speedMdl2, which = c(1, 5))
+vif(speedMdl2)
+
+```
+
+#### Outliers
+
+Our updated model doesn't appear to have issues with multicollinearity. The residuals plot looks fine but we see some points with high leverage and high residuals. Let's take a closer look at these points to determine whether they should be removed as outliers.  
+
+```{r outlierCheck}
+
+outlierTest(speedMdl2)
+df_speed[c(231, 377, 383, 384),]
+
+```
+
+These observations have some of the fastest `project_speed`, longest `length`, and largest `real_cost` of any of the transit projects in the dataset. We will note these outliers, and remove them from our model for now.  
+
+```{r outlierUpdate}
+
+speedMdl3 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed[-c(231, 377, 383,384),])
+plot(speedMdl3, which = 5)
+outlierTest(speedMdl3)
+
+#We still see outliers, so we clear them out one more time
+
+df_speed2 <- df_speed[-c(231, 377, 383,384),]
+
+speedMdl4 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed2[-c(98, 102, 302, 379, 343),])
+plot(speedMdl4, which = c(2,5))
+
+#Nothing glaring in the residuals vs leverage plot, so we're done with outliers. However, the Q-Q plot is skewed. Let's fix that:  
+
+boxcox(speedMdl4)
+
+```
+
+#### Final model
+```{r finalspeedModel}
+
+df_speed3 <- df_speed2 %>%
+  mutate(speed = log(project_speed))
+speedMdl_fin <- lm(speed ~ log(real_cost) + rr + length + group, data = df_speed3[-c(98, 102, 302, 379, 343),])
+
+#Last checks:
+
+plot(speedMdl_fin)
+vif(speedMdl_fin)
+outlierTest(speedMdl_fin)
+
+```
+
+And so, our final model's coefficients are as follows:  
+```{r coefficients}
+
+speedMdl_fin$coefficients
+
+```
+
+On observation, it makes sense that the project would take longer if the lines involved setting up railroads (hence `rr1` has a negative coefficient). We observe a typically faster project completion speed in projects in Asia , and a slower completion speed in Europe.  
+
 
 
 
