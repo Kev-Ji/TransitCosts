@@ -59,8 +59,6 @@ clean_transit <- clean_transit %>%
     .default = region
   ))
 
-
-
 #table(clean_transit$group)
 df <- clean_transit
 df <- df[!is.na(df$tunnel_per), ]
@@ -86,13 +84,11 @@ df <- df[!is.na(df$tunnel_per), ]
 
 
 
-## Data
+## Data and Exploratory Analysis
 
 Our transit data comes from the Transit Costs Project collaboration at the NYU Marron Institute of Urban Management. The express purpose of this dataset is to document the costs of transit projects across the world for international comparison. The transit projects under consideration all involve a railway, including light rail, trams, rapid transit/metro systems, and heavy rail (the meaning of this terminology changes based on local vernacular). This means busses, ferries, rideshare, bikes or other forms of transportation are not included in the dataset. This data was compiled by academic researchers and documents transit projects from . Each observation is a unique transit project undertaken by that country 
 
 To account for spatial factors, country shapefiles from a public ArcGIS dataset were merged into the . The map projection used in the dataset is the Mercator projection, which emphasizes accuracy of shape over size. The final dataset that was merged with the transit dataset was a cross-cultural psychology dataset from social psychologist Geert Hofstede. This dataset includes Hofstede's rankings of countries along six cultural dimensions: individualism-collectivism, uncertainty avoidance, strength of social hierarchy (called 'power-distance'), motivation toward achievement and success (formerly masculine v. feminine), and long-term vs. short term orientation. The observations in the Hofstede dataset were individual countries (or groupings of countries such as "Arab states").
-
-## Exploratory Analysis## Data Cleaning
 
 We remove a number of variables such as `source` and `currency` that serve only to tell us the source of the data or the local currency, so we can work with variables relevant to our questions such as `real_cost` and `length`. We then set the `real_cost` variable to be a number, and filter out observations with missing variables or that have yet to be completed (as we do not care for projects yet to begin or yet to finish). 
 
@@ -356,13 +352,14 @@ Apart from some potential outliers and a bit of skewing on the Q-Q plots, there 
 
 speedMdl2 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed)
 summary(speedMdl2)
+plot(speedMdl2, which = c(1, 5))
 vif(speedMdl2)
 
 ```
 
 #### Outliers
 
-Our updated model doesn't appear to have issues with multicollinearity. We now test for and clear outliers.  
+Our updated model doesn't appear to have issues with multicollinearity. We now test for and clear outliers. 
 
 ```{r outlierCheck}
 
