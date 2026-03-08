@@ -80,7 +80,17 @@ To account for spatial factors, country shapefiles from a public ArcGIS dataset 
 
 Three models were fit to the combined data.
 
-### 
+### Model 1 - Project Speed
+
+$$
+Y_i = \beta_0 + \beta_1 \cdot X_{1i} + \beta_2 \cdot X_{2i} + \beta_3 \cdot X_{3i} + \sum_{j = 4}^{9} \beta_j \cdot X_{ji}
+$$
+
+Where:  
+$X_{1i}$ = the natural log of the real cost of the project in millions of USD
+$X_{2i}$ = length of the project in km
+$X_{3i}$ = indicator of whether the project is based on railroad or not (0 if not, 1 if yes)
+And the sum notes the effect of the regional group the project it belongs to. There are 7 regional groups, with the base case being the Americas
 
 ### Model 2 - Cost Prediction
 $$
