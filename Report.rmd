@@ -401,7 +401,21 @@ Both models that incorporated cultural predictors were selected to be the final 
 
 ## Model Summaries
 
+<<<<<<< HEAD
 ```{r, echo = F, fig.cap = ""}
+=======
+The following is a coefficient table for the Cost Prediction model. The transformed regression model explains a substantial portion of the variation in transit construction costs, with an $R^2$ of 0.694. This indicates that the included predictors capture much of the variation in project costs.
+
+Several project characteristics show significant relationships with cost. **Project length**, **Duration of project**,  **Number of stations** have positive and statistically significant coefficients, which indicates larger transit systems require greater construction expenditures.
+
+Interestingly, the **midpoint year of construction** also has a positive coefficient, indicating that more recent projects tend to be more expensive. This may reflect rising construction standards and higher labor costs.
+
+Regional differences are also evident. Relatively, projects in **Europe** tend to have lower costs, while projects in **South Eastern Asia and Oceania** and **Americas** tend to have higher costs. These differences may reflect variation in labor markets, regulatory environments, and construction practices across regions.
+
+Overall, the results suggest that both **project scale** (length, stations, duration) and **geographic region** are important factors in explaining variation in transit construction costs.
+
+```{r, echo = F}
+>>>>>>> 06d5eadc7fe7157c52b144742c35b7e85d74f1e4
 # coefficient table
 broom::tidy(final) %>%
   dplyr::select(term, estimate, std.error, p.value) %>% 
