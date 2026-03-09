@@ -223,6 +223,18 @@ ggplot(vif_df, aes(x = vif, y = reorder(variable, vif)))+
   theme_classic()
 ```
 
+```{r}
+step_fit <- step(full_trans,
+     direction = 'backward', trace  = 0)
+
+data.frame(
+  Initial_AIC = round(AIC(full_trans),2),
+  End_AIC = round(AIC(step_fit),2),
+  Equation = paste(deparse(formula(step_fit)), collapse = ''))%>%
+knitr::kable(caption = "Backward AIC selection summary")
+```
+
+
 The subset of covariates was chosen through backward stepwise regression using AIC as the selection criteria. To stabilize variance, a Box–Cox transformation was applied, taking the response variable to the 1/4 power. Cook's distance was used to identify outliers but no outliers were identified based on common Cook's distance thresholds. VIF was used to assess multicollinearity but neither outliers or multicollinearity were identified in this model.
 
 
