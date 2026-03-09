@@ -82,7 +82,7 @@ df <- df[!is.na(df$tunnel_per), ]
 
 ## Introduction
 
-
+Millions of people around the world rely on public transit systems, it is a vital gear in the machinery of their daily life. This project turns our gaze to the factors behind the creation and completion of public transit systems. We will be looking at a dataset that contains information on transit projects around the world, as well as their characteristics such as length, cost of construction, number of stations serviced, and so on, to tackle the goal of this project, which is to understand the factors that influence a transit project's overall cost and how long it takes to become operational. To this end, we will be using linear models and analysis, the details of which are discussed below.  
 
 ## Data and Exploratory Analysis
 
@@ -98,10 +98,6 @@ We create four new variables:
 * region (character): which geographic region the transit project's country is located in, as per the country's ISO code
 * group (character): a further grouping of projects by geographic regions, to ensure that there are sufficient observations to represent different geographic areas. These groupings were North and South America, East Asia, Eastern Europe, Western Europe, SE Asia and Oceania, and North Africa and West Asia. These groupings were initially based on categories within the `countrycode` packages, but categories with observations below 20 were merged until they met until they had sufficient observations.
 * project speed (dbl): $\frac{\text{length of railway made}}{\text{Years spent on transit project}}$
-
-## Introduction
-
-
 
 ### Project Goal
 To analyze and compare transit projects around the world to understand the factors that affect the cost and speeds of projects around the world, including the additional impact of geographic or cultural factors.
