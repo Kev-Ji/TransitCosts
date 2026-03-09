@@ -78,6 +78,11 @@ df <- df[!is.na(df$tunnel_per), ]
 
 \begin{abstract}
 \noindent Write a concise summary of your project here (usually 150-250 words). It should state the research question, briefly describe the data, mention the primary linear regression models used, and summarize the key findings and conclusions.
+
+The goal of this project is to analyze and compare transit projects around the world to answer questions such as "What variables determine the speed at which transit projects are completed?", "What variables are significant when predicting the cost of a transit project?", and "What is the significance of spatial and cultural factors for models that predict the cost and speed of a transit project?". We use data from the Transit Costs Project collaboration at the NYU Marrion Institute of Urban Management. This data contains over 500 observations of completed, ongoing, and planned projects around the world, and relevant characteristics such as total budget, length, number of stations, and so on. 
+
+This project uses linear regression models to predict transit project completion speed and transit project cost to answer the main research questions. This leads us to findings such as the significant predictors in both models, further insight into the impact of geographical and cultural features, the different approaches to public transit projects around the world, and a few interesting implications from unexpected significant predictors.
+
 \end{abstract}
 
 ## Introduction
@@ -442,6 +447,13 @@ Overall, the results suggest that both **project scale** (length, stations, dura
 
 ### Project Speed
 
+From our final regression model, we observe a few predictors with a significant relationship with the speed of a project that make sense logically. For example, the logarithmic **Cost** of the project, and whether or not the project is in the regions of **Asia, Europe,** or **North Africa and West Asia** seem to have a positive relationship with the speed of the project. This makes sense as projects with a higher budget will have the resources they need to finish faster.  
+
+In the case of regions, further research shows that transit projects in China tend to be very short in distance and duration, making for projects that are completed quickly. Projects in Europe tend to have reasonable completion speeds save for a few outliers, and included in the **North Africa and West Asia** group are countries like Kuwait and Saudi Arabia that allocate very large budgets to their projects, likely increasing completion speed.  
+
+Railroad projects are slower to complete and the number of stations have a small, but positive relationship with project speed, interestingly enough.  
+
+Though factors such as **Cost** and **Rail Type** have a significant relationship with the project speed, it is the region that seems to have the most weight when it comes to the completion speed of a project. This highlights variation in approaches to transit project management in different parts of the world, notable examples being the numerous short and quick Chinese projects, the grand scale Saudi projects, or the long Indian projects.  
 
 
 ## Appendix 
