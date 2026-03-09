@@ -207,6 +207,22 @@ plot(full_trans, which = 4)
 
 ```
 
+```{r fig.width=3, fig.height=2}
+v <- vif(full_trans)
+
+vif_df <- data.frame(
+  variable = rownames(v),
+  vif = v[,3]
+)
+
+
+ggplot(vif_df, aes(x = vif, y = reorder(variable, vif)))+
+  geom_point(size = 3, color = 'darkblue')+
+  geom_vline(xintercept = 5, linetype = 'dashed', color = 'red', linewidth=1 )+
+  labs(title = 'VIF of variables', y ='variable')+
+  theme_classic()
+```
+
 The subset of covariates was chosen through backward stepwise regression using AIC as the selection criteria. To stabilize variance, a Box–Cox transformation was applied, taking the response variable to the 1/4 power. Cook's distance was used to identify outliers but no outliers were identified based on common Cook's distance thresholds. VIF was used to assess multicollinearity but neither outliers or multicollinearity were identified in this model.
 
 
