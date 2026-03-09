@@ -2,9 +2,8 @@
 title: "Placeholder"
 author: Sangey Rinchen, Blake Xu, Kevin Ji
 date: "`r Sys.Date()`"
-output:
-  html_document:
-    number_sections: true
+output: pdf_document
+geometry: margin = 0.6in
 fontsize: 10pt
 ---
 
@@ -249,7 +248,7 @@ I = \frac N W \frac{\sum^N_{i=1}\sum_{j=1}^Nw_{ij}(x_i - \bar x) (x_j - \bar x)}
 $$
 
 We use K-Nearest Neighbors as our method to determine neighbors and spatial weighting for Moran's I. K-Nearest Neighbors determines a neighbor by whoever is closest through distance calculations. We perform Monte Carlo simulations to estimate an empirical p-value. Through 10000 simulations, the p value is 0.0184, which suggests there is evidence of spatial clustering within our dataset. While $k=7$ for this empirical p-value, simulations were ran with other $k$ values and this significant result remains robust to different $k$ values. 
-```{r neighbor plot, echo = F, fig.width=15, fig.height=7, out.width= "100%", fig.pos = "H"}
+```{r neighbor plot, echo = F, fig.width=15, fig.height=6, out.width= "100%", fig.pos = "H"}
 par(mfrow = c(1,2))
 plot(st_geometry(medshp), asp = 0)
 title(main = "K Nearest Neighbors for Transit Countries",
@@ -382,36 +381,51 @@ proj_spd <-lm(sqrt(project.speed) ~ log(real_cost) + group + rr + stations + unc
 
 ```
 
-The final version of our cost projection model will be
+The final version of our cost projection model is
 $$ 
-Y_i = \beta_0 + \beta_1  X_{1i} + \beta_2  X_{2i} + \beta_3  X_{3i} + \sum_{j = 4}^{9} \beta_j  X_{ji} + \beta_{10} X_{10i} + \beta_{11} X_{11i} + \beta_{12}  X_{12i} + \beta_{13}  X_{13i} + \beta_{14}  X_{14i}
+Y_i^{\frac 1 4 } = \beta_0 + \sum_{j=1}^6 \beta_j  X_{ji} + \beta_7X_{7i} +\beta_8X_{8i} + \beta_9X_{9i} + \beta_{10}X_{10i} + \beta_{11}X_{11i} + \beta_{12}PDI_i + \beta_{13}COM_i + \beta_{12}UAI_{14}
 $$
 
-The final version of our 
+
+The final version of our project speed model is
+
+$$ 
+Y_i = Y_i = \beta_0 + \beta_1  X_{1i} + \beta_2  X_{2i} + \beta_3  X_{3i} + \sum_{j = 4}^{9} \beta_j  X_{ji} + \beta_{10}UAI_i + \beta_{11}PDI_i + \beta_{12}COM_i
+$$
 
 * $UAI_i$ = Uncertainty aversion. The higher the score, the more uncertainty tolerant a country is. 
 * $PDI_i$ = Power distance, or "the extent to which the less powerful members of society accept that power is distributed unequally". Democratic countries typically score lower on power distance.
 * $COM_i$ = Competitiveness, or the motivation for achievement and success. Countries with higher MAS highly value achievement and assertiveness while countries with lower MAS have stronger focus on cooperation.
-* $LTV_i$ = Long-term orientation of a country. Countries with 
 
+Both models that incorporated cultural predictors were selected to be the final iteration of their models as they had lower AIC. Multicollinear predictors were eliminated and weighted least regression was implemented to stabilize variance from the new predictors.
 
-## Results
+## Model Summaries
 
-The following is a coefficient table for the Cost Prediction model. Please leave interpretation of your final model's coefficients here.
-
-```{r, echo = F}
+```{r, echo = F, fig.cap = ""}
 # coefficient table
-broom::tidy(full_trans) %>%
+broom::tidy(final) %>%
   dplyr::select(term, estimate, std.error, p.value) %>% 
-  knitr::kable(digits = 3,caption = "Summary of the transformed regression model.")
+  knitr::kable(digits = 3)
 
 # model fit
-broom::glance(full_trans) %>%
+broom::glance(final) %>%
   dplyr::select(r.squared, adj.r.squared, sigma) %>% 
-  knitr::kable(digit = 3)
+  knitr::kable(digit = 3, , caption = "Summary of Cost Prediction")
 
 ```
 
+```{r, echo = F}
+# coefficient table
+broom::tidy(proj_spd) %>%
+  dplyr::select(term, estimate, std.error, p.value) %>% 
+  knitr::kable(digits = 3)
+
+# model fit
+broom::glance(proj_spd) %>%
+  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
+  knitr::kable(digit = 3, ,caption = "Project Speed (km buildout/year)")
+
+```
 
 
 ## Conclusion
