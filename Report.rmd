@@ -86,7 +86,7 @@ df <- df[!is.na(df$tunnel_per), ]
 
 ## Data and Exploratory Analysis
 
-Our transit data comes from the Transit Costs Project collaboration at the NYU Marron Institute of Urban Management. The express purpose of this dataset is to document the costs of transit projects across the world for international comparison. The transit projects under consideration all involve a railway, including light rail, trams, rapid transit/metro systems, and heavy rail (the meaning of this terminology changes based on local vernacular). This means busses, ferries, rideshare, bikes or other forms of transportation are not included in the dataset. This data was compiled by academic researchers and documents transit projects from . Each observation is a unique transit project undertaken by that country 
+Our transit data comes from the Transit Costs Project collaboration at the NYU Marron Institute of Urban Management. The express purpose of this dataset is to document the costs of transit projects across the world for international comparison. The transit projects under consideration all involve a railway, including light rail, trams, rapid transit/metro systems, and heavy rail (the meaning of this terminology changes based on local vernacular). This means busses, ferries, rideshare, bikes or other forms of transportation are not included in the dataset. This data was compiled by academic researchers and documents transit projects worldwide from 1954 onward. Each observation is a unique transit project undertaken by that country 
 
 To account for spatial factors, country shapefiles from a public ArcGIS dataset were merged into the . The map projection used in the dataset is the Mercator projection, which emphasizes accuracy of shape over size. The final dataset that was merged with the transit dataset was a cross-cultural psychology dataset from social psychologist Geert Hofstede. This dataset includes Hofstede's rankings of countries along six cultural dimensions: individualism-collectivism, uncertainty avoidance, strength of social hierarchy (called 'power-distance'), motivation toward achievement and success (formerly masculine v. feminine), and long-term vs. short term orientation. The observations in the Hofstede dataset were individual countries (or groupings of countries such as "Arab states").
 
@@ -401,10 +401,40 @@ Both models that incorporated cultural predictors were selected to be the final 
 
 ## Model Summaries
 
-<<<<<<< HEAD
-```{r, echo = F, fig.cap = ""}
-=======
-The following is a coefficient table for the Cost Prediction model. The transformed regression model explains a substantial portion of the variation in transit construction costs, with an $R^2$ of 0.694. This indicates that the included predictors capture much of the variation in project costs.
+
+
+
+```{r, echo = F}
+# coefficient table
+broom::tidy(final) %>%
+  dplyr::select(term, estimate, std.error, p.value) %>% 
+  knitr::kable(digits = 3)
+
+# model fit
+broom::glance(final) %>%
+  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
+  knitr::kable(digit = 3, , caption = "Cost Prediction")
+
+```
+
+```{r, echo = F}
+# coefficient table
+broom::tidy(proj_spd) %>%
+  dplyr::select(term, estimate, std.error, p.value) %>% 
+  knitr::kable(digits = 3, caption = "Coefficient Table")
+
+# model fit
+broom::glance(proj_spd) %>%
+  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
+  knitr::kable(digit = 3, label = 2 ,caption = "Project Speed (km buildout/year)")
+
+```
+
+## Conclusion
+
+### Cost Prediction 
+
+The transformed regression model explains a substantial portion of the variation in transit construction costs, with an $R^2$ of 0.694. This indicates that the included predictors capture much of the variation in project costs.
 
 Several project characteristics show significant relationships with cost. **Project length**, **Duration of project**,  **Number of stations** have positive and statistically significant coefficients, which indicates larger transit systems require greater construction expenditures.
 
@@ -414,35 +444,7 @@ Regional differences are also evident. Relatively, projects in **Europe** tend t
 
 Overall, the results suggest that both **project scale** (length, stations, duration) and **geographic region** are important factors in explaining variation in transit construction costs.
 
-```{r, echo = F}
->>>>>>> 06d5eadc7fe7157c52b144742c35b7e85d74f1e4
-# coefficient table
-broom::tidy(final) %>%
-  dplyr::select(term, estimate, std.error, p.value) %>% 
-  knitr::kable(digits = 3)
-
-# model fit
-broom::glance(final) %>%
-  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
-  knitr::kable(digit = 3, , caption = "Summary of Cost Prediction")
-
-```
-
-```{r, echo = F}
-# coefficient table
-broom::tidy(proj_spd) %>%
-  dplyr::select(term, estimate, std.error, p.value) %>% 
-  knitr::kable(digits = 3)
-
-# model fit
-broom::glance(proj_spd) %>%
-  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
-  knitr::kable(digit = 3, ,caption = "Project Speed (km buildout/year)")
-
-```
-
-
-## Conclusion
+### Project Speed
 
 
 
