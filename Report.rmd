@@ -1,0 +1,490 @@
+---
+title: "Placeholder"
+author: Sangey Rinchen, Blake Xu, Kevin Ji
+date: "`r Sys.Date()`"
+output: pdf_document
+geometry: margin = 0.6in
+fontsize: 10pt
+---
+
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(sf)
+library(spdep)
+library(car)
+library(alr4)
+library(MASS)
+library(leaps)
+library(gridExtra)
+library(countrycode)
+library(dplyr)
+library(broom)
+library(caret)
+transit_cost <- read.csv("transitcost.csv")
+transit_cost$tunnel_per = as.numeric(gsub("[\\%,]", "", transit_cost$tunnel_per))
+culture <- read.csv("hofstede_iso.csv")
+colnames(culture)[[1]] <- "ISO"
+```
+
+```{r data cleaning, include = FALSE}
+
+clean_transit <- transit_cost %>%
+  dplyr::select(c(e, country, city, start_year, end_year, rr, length, 
+  tunnel_per, tunnel, stations, year, ppp_rate, real_cost,
+   cost_km_millions)) %>%
+  filter(!is.na(e) & real_cost != 0)
+
+clean_transit <- clean_transit %>%
+  mutate(real_cost = as.numeric(real_cost)) %>%
+  mutate(rr = as.factor(rr)) %>%
+  filter(end_year <= 2026) %>%
+  mutate(duration = as.numeric(end_year) - as.numeric(start_year))
+
+```
+
+```{r region mapping, include = F}
+
+gb <- filter(clean_transit, clean_transit$country == "UK") %>%
+  mutate(country = "GB")
+
+clean_transit<- subset(clean_transit, !e %in% c(7226, 7336, 7417))
+clean_transit <- rbind(clean_transit, gb)
+  
+
+clean_transit$region <- countrycode(sourcevar = clean_transit$country,
+                            origin = "iso2c",
+                            destination = "region23")
+
+```
+
+```{r region_merge, include = F}
+
+clean_transit <- clean_transit %>%
+  mutate(group = case_when(
+    region %in% c("Northern America", "Central America", "South America") ~ "Americas",
+    region %in% c("Southern Europe", "Northern Europe", "Western Europe") ~ "Europe",
+    region %in% c("Central Asia", "Eastern Asia") ~ "Asia",
+    region %in% c("South-Eastern Asia", "Australia and New Zealand") ~ "SE Asia & Oceania",
+    region %in% c("Northern Africa", "Western Asia") ~ "North Africa & West Asia",
+    .default = region
+  ))
+
+#table(clean_transit$group)
+df <- clean_transit
+df <- df[!is.na(df$tunnel_per), ]
+```
+
+
+\begin{abstract}
+\noindent Write a concise summary of your project here (usually 150-250 words). It should state the research question, briefly describe the data, mention the primary linear regression models used, and summarize the key findings and conclusions.
+
+The goal of this project is to analyze and compare transit projects around the world to answer questions such as "What variables determine the speed at which transit projects are completed?", "What variables are significant when predicting the cost of a transit project?", and "What is the significance of spatial and cultural factors for models that predict the cost and speed of a transit project?". We use data from the Transit Costs Project collaboration at the NYU Marrion Institute of Urban Management. This data contains over 500 observations of completed, ongoing, and planned projects around the world, and relevant characteristics such as total budget, length, number of stations, and so on. 
+
+This project uses linear regression models to predict transit project completion speed and transit project cost to answer the main research questions. This leads us to findings such as the significant predictors in both models, further insight into the impact of geographical and cultural features, the different approaches to public transit projects around the world, and a few interesting implications from unexpected significant predictors.
+
+\end{abstract}
+
+## Introduction
+
+Millions of people around the world rely on public transit systems, it is a vital gear in the machinery of their daily life. This project turns our gaze to the factors behind the creation and completion of public transit systems. We will be looking at a dataset that contains information on transit projects around the world, as well as their characteristics such as length, cost of construction, number of stations serviced, and so on, to tackle the goal of this project, which is to understand the factors that influence a transit project's overall cost and how long it takes to become operational. To this end, we will be using linear models and analysis, the details of which are discussed below.  
+
+## Data and Exploratory Analysis
+
+Our transit data comes from the Transit Costs Project collaboration at the NYU Marron Institute of Urban Management. The express purpose of this dataset is to document the costs of transit projects across the world for international comparison. The transit projects under consideration all involve a railway, including light rail, trams, rapid transit/metro systems, and heavy rail (the meaning of this terminology changes based on local vernacular). This means busses, ferries, rideshare, bikes or other forms of transportation are not included in the dataset. This data was compiled by academic researchers and documents transit projects worldwide from 1954 onward. Each observation is a unique transit project undertaken by that country 
+
+To account for spatial factors, country shapefiles from a public ArcGIS dataset were merged into the . The map projection used in the dataset is the Mercator projection, which emphasizes accuracy of shape over size. The final dataset that was merged with the transit dataset was a cross-cultural psychology dataset from social psychologist Geert Hofstede. This dataset includes Hofstede's rankings of countries along six cultural dimensions: individualism-collectivism, uncertainty avoidance, strength of social hierarchy (called 'power-distance'), motivation toward achievement and success (formerly masculine v. feminine), and long-term vs. short term orientation. The observations in the Hofstede dataset were individual countries (or groupings of countries such as "Arab states").
+
+We remove a number of variables such as `source` and `currency` that serve only to tell us the source of the data or the local currency, so we can work with variables relevant to our questions such as `real_cost` and `length`. We then set the `real_cost` variable to be a number, and filter out observations with missing variables or that have yet to be completed (as we do not care for projects yet to begin or yet to finish). 
+
+We create four new variables:
+
+* duration (dbl): how long the project took, computed as the difference between the end and start years
+* region (character): which geographic region the transit project's country is located in, as per the country's ISO code
+* group (character): a further grouping of projects by geographic regions, to ensure that there are sufficient observations to represent different geographic areas. These groupings were North and South America, East Asia, Eastern Europe, Western Europe, SE Asia and Oceania, and North Africa and West Asia. These groupings were initially based on categories within the `countrycode` packages, but categories with observations below 20 were merged until they met until they had sufficient observations.
+* project speed (dbl): $\frac{\text{length of railway made}}{\text{Years spent on transit project}}$
+
+### Project Goal
+To analyze and compare transit projects around the world to understand the factors that affect the cost and speeds of projects around the world, including the additional impact of geographic or cultural factors.
+
+### Research Questions
+1. Project Speed
+What variables are significant when predicting the speed at which transit projects are completed? 
+
+2. Project Cost
+Which variables are significant when predicting the cost of a transit project? 
+
+3. Spatial and Cultural factors
+Are spatial and cultural factors significant for models that predict the cost and speed of a project? 
+
+## Methodology 
+
+```{r project speed model setup, include = F}
+df_speed <- df %>%
+  filter(!is.na(duration)) %>%
+  mutate(project_speed = length / duration)
+
+rownames(df_speed) <- NULL #resetting row names
+
+speedMdl <- lm(project_speed ~ log(real_cost) + rr + length + stations + group, data = df_speed)
+
+speedMdl2 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed)
+
+speedMdl3 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed[-c(231, 377, 383,384),])
+
+df_speed2 <- df_speed[-c(231, 377, 383,384),]
+
+speedMdl4 <- lm(project_speed ~ log(real_cost) + rr + length + group, data = df_speed2[-c(98, 102, 302, 379, 343),])
+
+df_speed3 <- df_speed2 %>%
+  mutate(speed = sqrt(project_speed))
+speedMdl_fin <- lm(speed ~ log(real_cost) + rr + length + group, data = df_speed3[-c(98, 102, 302, 379, 343),])
+
+```
+
+```{r cost projection model setup, include = F}
+df_pos <- df %>% filter(real_cost > 0)
+
+full_pos <- lm(real_cost ~ group + year + length + stations + ppp_rate + duration, data = df_pos)
+
+full_trans <- lm(real_cost^0.25 ~ group + year+ length + stations+ ppp_rate+ duration, data = df)
+
+```
+
+Three models were fit to the combined data. Each of these models tackle each of our connected research questions.
+
+All of our models consider incorporate the region of the country as a covariate. The region a country belongs to is encoded as a dummy variable.
+
+### Model 1 - Project Speed
+
+$$
+Y_i = \beta_0 + \beta_1  X_{1i} + \beta_2  X_{2i} + \beta_3  X_{3i} + \sum_{j = 4}^{9} \beta_j  X_{ji}
+$$
+
+Where:  
+
+* $Y_{i}$ = Square root of the project speed.
+* $X_{1i}$ = the natural log of the real cost of the project in millions of USD
+* $X_{2i}$ = length of the project in km
+* $X_{3i}$ = indicator of whether the project is based on railroad or not (0 if not, 1 if yes) \\ 
+And the sum notes the effect of the regional group the project it belongs to. There are 7 regional groups, with the base case being the Americas.
+
+```{r Project Speed Plot, echo = F, fig.width=9, fig.height=6, out.width="100%", out.height="300px"}
+par(mfrow = c(2,2), mar = c(4,4,2,1))
+# vif(speedMdl)
+plot(speedMdl, 1)
+plot(speedMdl2, 4)
+boxcox(speedMdl4)
+plot(speedMdl_fin, 1)
+
+```
+
+ To address heterogeneity in the model (shown in top-left TA plot), a Box–Cox transformation was applied to square root the response variable. This subset of covariates was chosen through exhaustive stepwise regression using AIC as the selection crtieria. Cook's distance was used to identify outliers and several highly influential outliers were identified and removed (top right plot). These outliers were large scale projects that were marked as complete but have not actually been completed. To check for multicollinearity, VIF was used to eliminate redundant covariates (such as length of transit project as a covariate).
+
+### Model 2 - Cost Prediction
+$$
+Y_i^{\frac 1 4 } = \beta_0 + \sum_{j=1}^6 \beta_j  X_{ji} + \beta_7X_{7i} +\beta_8X_{8i} + \beta_9X_{9i} + \beta_{10}X_{10i} + \beta_{11}X_{11i}
+$$
+Where:
+
+* $Y_{i} =$ The real cost of a project. Real cost is the nominal cost adjusted based on inflation indexes between countries.
+* $X_{1i}, X_{2i}, \dots, X_{6i}$ are dummy variables for region of the country
+* $X_{7i} =$ Midpoint year of construction for the project
+* $X_{8i} =$ Length of transit route built (km) 
+* $X_{9i} =$ Number of stations built 
+* $X_{10i} =$ Purchasing Power Parity (PPP), based on midpoint of construction
+* $X_{11i} =$ Duration of transit project (years)
+
+```{r Cost Prediction Plots, echo = F, fig.width=9, fig.height=6, out.width="100%", out.height="300px"}
+par(mfrow = c(2,2), mar = c(4,4,2,1))
+
+MASS::boxcox(full_pos, plotit = TRUE, xlab = expression(lambda))
+title(main = "Boxcox Plot")
+
+plot(full_trans, which = 1)
+plot(full_trans, which = 2)
+plot(full_trans, which = 4)
+
+```
+
+```{r fig.width=3, fig.height=2}
+v <- vif(full_trans)
+
+vif_df <- data.frame(
+  variable = rownames(v),
+  vif = v[,3]
+)
+
+
+ggplot(vif_df, aes(x = vif, y = reorder(variable, vif)))+
+  geom_point(size = 3, color = 'darkblue')+
+  geom_vline(xintercept = 5, linetype = 'dashed', color = 'red', linewidth=1 )+
+  labs(title = 'VIF of variables', y ='variable')+
+  theme_classic()
+```
+
+```{r}
+step_fit <- step(full_trans,
+     direction = 'backward', trace  = 0)
+
+data.frame(
+  Initial_AIC = round(AIC(full_trans),2),
+  End_AIC = round(AIC(step_fit),2),
+  Equation = paste(deparse(formula(step_fit)), collapse = ''))%>%
+knitr::kable(caption = "Backward AIC selection summary")
+```
+
+
+The subset of covariates was chosen through backward stepwise regression using AIC as the selection criteria. To stabilize variance, a Box–Cox transformation was applied, taking the response variable to the 1/4 power. Cook's distance was used to identify outliers but no outliers were identified based on common Cook's distance thresholds. VIF was used to assess multicollinearity but neither outliers or multicollinearity were identified in this model.
+
+
+### Accounting for spatial autocorrelation
+
+A particular concern for our dataset is spatial autocorrelation. There is strong reason to believe that the presence of transit in neighboring countries could disincentivise or incentivise countries to build it themselves. If a country's passenger rail buildout is successful, it encourages neighbors to invest in rail projects themselves. Certain countries have legal frameworks or cultural biases that discourage infrastructure investments like transit, and these features are often shared among neighboring countries. Spatial autocorrelation may also capture the aspects of geography that make it more costly or inexpensive to build in certain regions, such as soil quality or climate. 
+
+```{r fullmerge, echo = FALSE}
+
+colnames(transit_cost) <- c("e", "ISO", "city", "line",
+"start_year", "end_year", "rr", "length", 'tunnel_per',
+'tunnel', 'stations', 'source1', 'cost', 'currency',
+'year', 'ppp_rate', 'real_cost', 'cost_km_millions',
+'source2', 'reference')
+
+```
+
+```{r spatial autocorrelation,  out.height="35%", message = FALSE,  warning = FALSE, include = FALSE}
+
+medcost <- transit_cost %>% group_by(ISO) %>% 
+summarize(median.cost = log(median(cost_km_millions, na.rm=T)), 
+median.spd = sqrt(median(length / (as.numeric(end_year) - as.numeric(start_year)))))
+
+colnames(medcost) <- c("ISO", "Median_Cost", "Median_Speed")
+
+shp <- st_read("World_Countries_Generalized.shp")
+
+medshp <- merge(shp, medcost)
+
+centroid <- st_centroid(medshp)
+dist <- knearneigh(centroid, k = 7)
+dist_nb <- knn2nb(dist)
+medshp_wts <- nb2listw(dist_nb, style = "W")
+
+```
+
+By plotting median transit costs for each country against a geometric map, we can see visible cases of spatial clustering in our dataset. North American countries have higher than average transit costs while East Asian countries have lower median transit costs. A more rigorous way to evaluate spatial clustering in data is Moran's I, a commonly used spatial autocorrelation measure.
+$$
+I = \frac N W \frac{\sum^N_{i=1}\sum_{j=1}^Nw_{ij}(x_i - \bar x) (x_j - \bar x)}{\sum^N_{i=1}(x_i - \bar x)^2}
+$$
+
+We use K-Nearest Neighbors as our method to determine neighbors and spatial weighting for Moran's I. K-Nearest Neighbors determines a neighbor by whoever is closest through distance calculations. We perform Monte Carlo simulations to estimate an empirical p-value. Through 10000 simulations, the p value is 0.0184, which suggests there is evidence of spatial clustering within our dataset. While $k=7$ for this empirical p-value, simulations were ran with other $k$ values and this significant result remains robust to different $k$ values. 
+```{r neighbor plot, echo = F, fig.width=15, fig.height=6, out.width= "100%", fig.pos = "H"}
+par(mfrow = c(1,2))
+plot(st_geometry(medshp), asp = 0)
+title(main = "K Nearest Neighbors for Transit Countries",
+    cex.main = 2)
+mtext("K = 7", side = 3, line = 0.2, cex = 1.5)
+plot(dist_nb, coords = st_coordinates(centroid), add = TRUE, col = "red")
+
+
+# Moran Plot
+moran.plot(as.numeric(scale(medshp$Median_Cost)), listw=medshp_wts, 
+            xlab = "", ylab = "", 
+            main = "")
+title(main = "Moran Scatterplot for Transit Costs", cex.main = 2)
+mtext("Standardized Transit Project Cost", side = 1, line = 3, cex = 1.5)
+mtext("Standardized Lagged Project Cost",  side = 2, line = 3, cex = 1.5)
+
+```
+
+```{r MC Test, include = FALSE}
+moran.test(medshp$Median_Cost, medshp_wts)    
+
+mc <- moran.mc(medshp$Median_Cost, medshp_wts, nsim = 10000)
+
+```
+
+```{r spatiosocial, echo = FALSE, warning = FALSE}
+colnames(clean_transit)[[1]] <- "e"
+colnames(clean_transit)[[2]] <- "ISO"
+transit.culture <- merge(clean_transit, culture)
+
+transit.culture <- transit.culture %>% 
+    mutate(real_cost = as.numeric(real_cost)) %>% 
+    mutate(rr = as.factor(rr)) %>% 
+    filter(end_year <= 2026) %>%
+    mutate(duration = as.numeric(end_year) - as.numeric(start_year)) %>%
+    mutate(longtermview = as.numeric(ltowvs),
+    uncertainty = as.numeric(uai),
+    competitive = as.numeric(mas),
+    power_distance = as.numeric(pdi),
+    individual = as.numeric(ivr))
+    
+socio <- transit.culture %>% 
+    group_by(ISO) %>%
+    summarize(ltv = (abs(median(longtermview))),
+    uai = (abs(median(uncertainty) - 100)),
+    idv = (median(individual)), 
+    pdi =  (median(power_distance)),
+    comp = (median(competitive))) %>% 
+    ungroup()
+
+socioshp <- merge(shp, socio)
+
+med.p <- ggplot(data = medshp) + 
+    geom_sf(aes(fill = Median_Cost)) + theme_void() +
+     scale_color_viridis_b(aes = c("fill")) + 
+    labs(title = "Median Transit Cost by Country")
+
+spd.p <- ggplot(data = medshp) + 
+    geom_sf(aes(fill = Median_Speed)) + theme_void() +
+     scale_color_viridis_b(aes = c("fill")) + 
+    labs(title = "Median Project Speed by Country")
+
+p <- ggplot(socioshp) + scale_color_viridis_b(aes = c("fill")) + 
+    theme_void()
+ltv.p <- p +
+    geom_sf(aes(fill = ltv)) +
+    labs(title = "Long Term View by Country")
+
+uai.p <- p + 
+    geom_sf(aes(fill = uai)) +
+    labs(title = "Uncertainty Aversion by Country")
+
+comp.p <- p +
+    geom_sf(aes(fill = comp)) +
+    labs(title = "Competitiveness by Country")
+
+pdi.p <- p +
+    geom_sf(aes(fill = pdi)) +
+    labs(title = "Power Distance by Country")
+
+individual.p <- p +
+    geom_sf(aes(fill = idv)) +
+    labs(title = "Individuality by Country")
+
+```
+
+To account for the causes of this spatial clustering, we incorporate cultural predictors from Hofstede's dimensions of national culture. While Hofstede's theory is old and has been criticized for its methodology, it is still referenced within current sociological literature and has not been supplanted by a newer theory. These cultural dimensions act as a proxy for the attitudes of the state toward transit infrastructure. Certain nations have stronger emphasis on individual property rights, which makes it difficult for the state to obtain land or right of way without expensive arbitration. Hofstede's individualism-collectivism scale is a good proxy for these national policy tendencies. Other cultural dimensions capture a nation's skepticism toward state capacity and large tax-funded projects. A nation with a higher score on long-term orientation would be less hostile toward more invasive projects like heavy rail, which require high upfront investment.
+
+```{r cultural plots, echo = FALSE, fig.width = 14, fig.height = 6}
+grid.arrange(med.p, ltv.p, uai.p, comp.p, pdi.p, spd.p, ncol = 3)
+```
+
+```{r Effective N, echo = FALSE}
+# effective N for spatial autocorrelation
+I <- mc$statistic
+eff_n <- nrow(transit_cost)*((1-I)/(1+I))
+```
+
+```{r real cost - culture model, echo = FALSE, warning = FALSE, include = F}
+
+multicheck <- lm(cost_km_millions ~ longtermview + 
+uncertainty + competitive + power_distance + 
+individual, data = transit.culture)
+
+long_term <- lm(real_cost^0.25 ~  uncertainty + power_distance + competitive + year + length + ppp_rate + power_distance + rr + tunnel_per + length + duration + group, data = transit.culture)
+
+vif(long_term)
+
+ncvTest(long_term)
+wts <- 1/(abs(rstandard(long_term)))
+
+weighted_socio <- merge(transit.culture, as.data.frame(wts), by = "row.names")
+
+final <- lm(real_cost^0.25 ~  uncertainty + year + competitive + rr + tunnel_per + length + power_distance + duration + group, data = weighted_socio, weights = wts)
+
+# Employ econometric procedure for ALS
+
+# smth about HC adjusted covariance 
+
+```
+
+```{r project speed - culture model, echo = FALSE, warning = FALSE, include = F}
+
+speed <- transit.culture[-c(287, 306),] %>% 
+          mutate(project.speed = length/duration)
+
+norm <- lm(sqrt(project.speed) ~ log(real_cost)  + group + rr + stations, data = speed)
+
+proj_spd <-lm(sqrt(project.speed) ~ log(real_cost) + group + rr + stations + uncertainty + power_distance + competitive, data = speed)
+
+```
+
+The final version of our cost projection model is
+$$ 
+Y_i^{\frac 1 4 } = \beta_0 + \sum_{j=1}^6 \beta_j  X_{ji} + \beta_7X_{7i} +\beta_8X_{8i} + \beta_9X_{9i} + \beta_{10}X_{10i} + \beta_{11}X_{11i} + \beta_{12}PDI_i + \beta_{13}COM_i + \beta_{12}UAI_{14}
+$$
+
+
+The final version of our project speed model is
+
+$$ 
+Y_i = Y_i = \beta_0 + \beta_1  X_{1i} + \beta_2  X_{2i} + \beta_3  X_{3i} + \sum_{j = 4}^{9} \beta_j  X_{ji} + \beta_{10}UAI_i + \beta_{11}PDI_i + \beta_{12}COM_i
+$$
+
+* $UAI_i$ = Uncertainty aversion. The higher the score, the more uncertainty tolerant a country is. 
+* $PDI_i$ = Power distance, or "the extent to which the less powerful members of society accept that power is distributed unequally". Democratic countries typically score lower on power distance.
+* $COM_i$ = Competitiveness, or the motivation for achievement and success. Countries with higher MAS highly value achievement and assertiveness while countries with lower MAS have stronger focus on cooperation.
+
+Both models that incorporated cultural predictors were selected to be the final iteration of their models as they had lower AIC. Multicollinear predictors were eliminated and weighted least regression was implemented to stabilize variance from the new predictors.
+
+## Model Summaries
+
+
+
+
+```{r, echo = F}
+# coefficient table
+broom::tidy(final) %>%
+  dplyr::select(term, estimate, std.error, p.value) %>% 
+  knitr::kable(digits = 3)
+
+# model fit
+broom::glance(final) %>%
+  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
+  knitr::kable(digit = 3, , caption = "Cost Prediction")
+
+```
+
+```{r, echo = F}
+# coefficient table
+broom::tidy(proj_spd) %>%
+  dplyr::select(term, estimate, std.error, p.value) %>% 
+  knitr::kable(digits = 3, caption = "Coefficient Table")
+
+# model fit
+broom::glance(proj_spd) %>%
+  dplyr::select(r.squared, adj.r.squared, sigma) %>% 
+  knitr::kable(digit = 3, label = 2 ,caption = "Project Speed (km buildout/year)")
+
+```
+
+## Conclusion
+
+### Cost Prediction 
+
+The transformed regression model explains a substantial portion of the variation in transit construction costs, with an $R^2$ of 0.694. This indicates that the included predictors capture much of the variation in project costs.
+
+Several project characteristics show significant relationships with cost. **Project length**, **Duration of project**,  **Number of stations** have positive and statistically significant coefficients, which indicates larger transit systems require greater construction expenditures.
+
+Interestingly, the **midpoint year of construction** also has a positive coefficient, indicating that more recent projects tend to be more expensive. This may reflect rising construction standards and higher labor costs.
+
+Regional differences are also evident. Relatively, projects in **Europe** tend to have lower costs, while projects in **South Eastern Asia and Oceania** and **Americas** tend to have higher costs. These differences may reflect variation in labor markets, regulatory environments, and construction practices across regions.
+
+Overall, the results suggest that both **project scale** (length, stations, duration) and **geographic region** are important factors in explaining variation in transit construction costs.
+
+### Project Speed
+
+From our final regression model, we observe a few predictors with a significant relationship with the speed of a project that make sense logically. For example, the logarithmic **Cost** of the project, and whether or not the project is in the regions of **Asia, Europe,** or **North Africa and West Asia** seem to have a positive relationship with the speed of the project. This makes sense as projects with a higher budget will have the resources they need to finish faster.  
+
+In the case of regions, further research shows that transit projects in China tend to be very short in distance and duration, making for projects that are completed quickly. Projects in Europe tend to have reasonable completion speeds save for a few outliers, and included in the **North Africa and West Asia** group are countries like Kuwait and Saudi Arabia that allocate very large budgets to their projects, likely increasing completion speed.  
+
+Railroad projects are slower to complete and the number of stations have a small, but positive relationship with project speed, interestingly enough.  
+
+Though factors such as **Cost** and **Rail Type** have a significant relationship with the project speed, it is the region that seems to have the most weight when it comes to the completion speed of a project. This highlights variation in approaches to transit project management in different parts of the world, notable examples being the numerous short and quick Chinese projects, the grand scale Saudi projects, or the long Indian projects.  
+
+
+## Appendix 
+
+
+
