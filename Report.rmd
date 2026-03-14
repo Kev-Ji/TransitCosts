@@ -434,7 +434,7 @@ Both models that incorporated cultural predictors were selected to be the final 
 # model fit
 adj_p <- p.adjust(summary(final)$coefficients[,4], method = "holm")
 knitr::kable(cbind(summary(final)$coefficients, adj_p),
-             caption = "Adjusted p-values for the Project Cost Model using Holm Correction")
+             caption = "Final Project Cost Model with adjusted p-values from Holm Correction")
 
 broom::glance(final) %>%
   dplyr::select(r.squared, adj.r.squared, sigma) %>% 
@@ -447,7 +447,7 @@ broom::glance(final) %>%
 
 adj_p <- p.adjust(summary(proj_spd)$coefficients[,4], method = "holm")
 knitr::kable(cbind(summary(proj_spd)$coefficients, adj_p),
-             caption = "Adjusted p-values for the Project Speed Model using Holm Correction")
+             caption = "Final Project Speed Model with adjusted p-values from Holm Correction")
 
 # model fit
 broom::glance(proj_spd) %>%
