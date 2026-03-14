@@ -484,7 +484,14 @@ Railroad projects are slower to complete and the number of stations have a small
 Though factors such as **Cost** and **Rail Type** have a significant relationship with the project speed, it is the region that seems to have the most weight when it comes to the completion speed of a project. This highlights variation in approaches to transit project management in different parts of the world, notable examples being the numerous short and quick Chinese projects, the grand scale Saudi projects, or the long Indian projects.  
 
 
-## Appendix 
+## References
 
+* Harmon, J. (2025). _R for Data Science: tidytuesday data 2021-01-05 (Transit Costs Project)_. GitHub. Available at: https://github.com/rfordatascience/tidytuesday/blob/main/data/2021/2021-01-05/Merged%20Costs%20(1.0)%20-%20Sheet1.csv
 
+* Esri. (2025). _World Countries Generalized._ ArcGIS Hub. Available at: https://hub.arcgis.com/datasets/esri::world-countries-generalized 
 
+* The World Bank Group. (2017). _SDG Atlas 2017: The World by Region._ The World Bank. Available at: https://datatopics.worldbank.org/sdgatlas/archive/2017/the-world-by-region.html
+
+* Hofstede, G. (2015). _Dimensions of National Culture: Version 2015_ Geert Hofstede. Available at: https://geerthofstede.com/research-and-vsm/dimension-data-matrix/
+
+* Romano & Wolf. (2017). _Resurrecting Weighted Least Squares._ Science Direct. Available at: https://www.sciencedirect.com/science/article/abs/pii/S030440761630197X
