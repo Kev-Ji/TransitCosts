@@ -1,5 +1,5 @@
 ---
-title: "Placeholder"
+title: "Beyond administrative inefficiency: cultural barrers to transit costs"
 author: Sangey Rinchen, Blake Xu, Kevin Ji
 date: "`r Sys.Date()`"
 output: pdf_document
@@ -77,19 +77,19 @@ df <- df[!is.na(df$tunnel_per), ]
 
 
 \begin{abstract}
-\noindent Write a concise summary of your project here (usually 150-250 words). It should state the research question, briefly describe the data, mention the primary linear regression models used, and summarize the key findings and conclusions.
+\noindent 
+(Kevin)
+The difference in the cost and turnaround of transit projects is thought to be explained by administrative inefficiencies between countries across the world. We investigate the possibility that cultural predictors can explain the cost of transit projects. Our analysis incorporates two datasets. First, the NYC Marron Institute's Transit Costs dataset includes costs, number of stations built, length of the line, time it took to complete the project, and other administrative details about transit projects from 1950 onward. To incorporate cultural factors, this dataset is then merged with the 6 Dimensions of National Culture dataset created by Geert Hofstede. In this dataset, Hofstede gives a 0-100 score in 6 different cultural spectrums such as individualism-collectivism or short-term orientation v. long-term orientation.
 
-The goal of this project is to analyze and compare transit projects around the world to answer questions such as "What variables determine the speed at which transit projects are completed?", "What variables are significant when predicting the cost of a transit project?", and "What is the significance of spatial and cultural factors for models that predict the cost and speed of a transit project?". We use data from the Transit Costs Project collaboration at the NYU Marrion Institute of Urban Management. This data contains over 500 observations of completed, ongoing, and planned projects around the world, and relevant characteristics such as total budget, length, number of stations, and so on. 
-
-This project uses linear regression models to predict transit project completion speed and transit project cost to answer the main research questions. This leads us to findings such as the significant predictors in both models, further insight into the impact of geographical and cultural features, the different approaches to public transit projects around the world, and a few interesting implications from unexpected significant predictors.
+To perform the analysis, two regression models are made to separately predict transit project completion speed and transit project cost to answer the main research questions. The main administrative factors, such as percentage of project that is underground, duration of project, physical length of project, remain significant after incorporating cultural covariates. Cultural predictors boost predictive power drastically for project cost and only slightly for speed of completion of a transit project.
 
 \end{abstract}
 
-## Introduction
+## Introduction (Sangey)
 
 Millions of people around the world rely on public transit systems, it is a vital gear in the machinery of their daily life. This project turns our gaze to the factors behind the creation and completion of public transit systems. We will be looking at a dataset that contains information on transit projects around the world, as well as their characteristics such as length, cost of construction, number of stations serviced, and so on, to tackle the goal of this project, which is to understand the factors that influence a transit project's overall cost and how long it takes to become operational. To this end, we will be using linear models and analysis, the details of which are discussed below.  
 
-## Data and Exploratory Analysis
+## Data and Exploratory Analysis (Kevin)
 
 Our transit data comes from the Transit Costs Project collaboration at the NYU Marron Institute of Urban Management. The express purpose of this dataset is to document the costs of transit projects across the world for international comparison. The transit projects under consideration all involve a railway, including light rail, trams, rapid transit/metro systems, and heavy rail (the meaning of this terminology changes based on local vernacular). This means busses, ferries, rideshare, bikes or other forms of transportation are not included in the dataset. This data was compiled by academic researchers and documents transit projects worldwide from 1954 onward. Each observation is a unique transit project undertaken by that country 
 
@@ -155,7 +155,7 @@ Three models were fit to the combined data. Each of these models tackle each of 
 
 All of our models consider incorporate the region of the country as a covariate. The region a country belongs to is encoded as a dummy variable.
 
-### Model 1 - Project Speed
+### Model 1 - Project Speed (Sangey)
 
 $$
 Y_i = \beta_0 + \beta_1  X_{1i} + \beta_2  X_{2i} + \beta_3  X_{3i} + \sum_{j = 4}^{9} \beta_j  X_{ji}
@@ -179,9 +179,9 @@ plot(speedMdl_fin, 1)
 
 ```
 
- To address heterogeneity in the model (shown in top-left TA plot), a Box–Cox transformation was applied to square root the response variable. This subset of covariates was chosen through exhaustive stepwise regression using AIC as the selection crtieria. Cook's distance was used to identify outliers and several highly influential outliers were identified and removed (top right plot). These outliers were large scale projects that were marked as complete but have not actually been completed. To check for multicollinearity, VIF was used to eliminate redundant covariates (such as length of transit project as a covariate).
+ To address heteroskedasticity in the model (shown in top-left TA plot), a Box–Cox transformation was applied to square root the response variable. However, the Box-Cox transformation helped to adjust for heteroskedasticity but was insufficient on its own. Weights were additionally given to each observation, defined as $\frac{1}{|residual|}$. After implementing both weighting and the Box-Cox transformation, our regression was able to pass non-constant variance tests. This subset of covariates was chosen through exhaustive stepwise regression using AIC as the selection crtieria. Cook's distance was used to identify outliers and several highly influential outliers were identified and removed (top right plot). These outliers were large scale projects that were marked as complete but have not actually been completed. To check for multicollinearity, VIF was used to eliminate redundant covariates (such as length of transit project as a covariate).
 
-### Model 2 - Cost Prediction
+### Model 2 - Cost Prediction (Blake)
 $$
 Y_i^{\frac 1 4 } = \beta_0 + \sum_{j=1}^6 \beta_j  X_{ji} + \beta_7X_{7i} +\beta_8X_{8i} + \beta_9X_{9i} + \beta_{10}X_{10i} + \beta_{11}X_{11i}
 $$
@@ -207,7 +207,7 @@ plot(full_trans, which = 4)
 
 ```
 
-```{r fig.width=3, fig.height=2}
+```{r fig.width=3, fig.height=2, echo = FALSE}
 v <- vif(full_trans)
 
 vif_df <- data.frame(
@@ -223,7 +223,7 @@ ggplot(vif_df, aes(x = vif, y = reorder(variable, vif)))+
   theme_classic()
 ```
 
-```{r}
+```{r, echo = FALSE}
 step_fit <- step(full_trans,
      direction = 'backward', trace  = 0)
 
@@ -238,7 +238,7 @@ knitr::kable(caption = "Backward AIC selection summary")
 The subset of covariates was chosen through backward stepwise regression using AIC as the selection criteria. To stabilize variance, a Box–Cox transformation was applied, taking the response variable to the 1/4 power. Cook's distance was used to identify outliers but no outliers were identified based on common Cook's distance thresholds. VIF was used to assess multicollinearity but neither outliers or multicollinearity were identified in this model.
 
 
-### Accounting for spatial autocorrelation
+### Accounting for spatial autocorrelation (Kevin)
 
 A particular concern for our dataset is spatial autocorrelation. There is strong reason to believe that the presence of transit in neighboring countries could disincentivise or incentivise countries to build it themselves. If a country's passenger rail buildout is successful, it encourages neighbors to invest in rail projects themselves. Certain countries have legal frameworks or cultural biases that discourage infrastructure investments like transit, and these features are often shared among neighboring countries. Spatial autocorrelation may also capture the aspects of geography that make it more costly or inexpensive to build in certain regions, such as soil quality or climate. 
 
@@ -428,10 +428,7 @@ $$
 
 Both models that incorporated cultural predictors were selected to be the final iteration of their models as they had lower AIC. Multicollinear predictors were eliminated and weighted least regression was implemented to stabilize variance from the new predictors.
 
-## Model Summaries
-
-
-
+## Model Summaries (Team Effort)
 
 ```{r, echo = F}
 # coefficient table
@@ -461,7 +458,7 @@ broom::glance(proj_spd) %>%
 
 ## Conclusion
 
-### Cost Prediction 
+### Cost Prediction (Blake)
 
 The transformed regression model explains a substantial portion of the variation in transit construction costs, with an $R^2$ of 0.694. This indicates that the included predictors capture much of the variation in project costs.
 
@@ -473,7 +470,7 @@ Regional differences are also evident. Relatively, projects in **Europe** tend t
 
 Overall, the results suggest that both **project scale** (length, stations, duration) and **geographic region** are important factors in explaining variation in transit construction costs.
 
-### Project Speed
+### Project Speed (Sangey)
 
 From our final regression model, we observe a few predictors with a significant relationship with the speed of a project that make sense logically. For example, the logarithmic **Cost** of the project, and whether or not the project is in the regions of **Asia, Europe,** or **North Africa and West Asia** seem to have a positive relationship with the speed of the project. This makes sense as projects with a higher budget will have the resources they need to finish faster.  
 
