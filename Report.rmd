@@ -431,12 +431,11 @@ Both models that incorporated cultural predictors were selected to be the final 
 ## Model Summaries (Team Effort)
 
 ```{r, echo = F}
-# coefficient table
-broom::tidy(final) %>%
-  dplyr::select(term, estimate, std.error, p.value) %>% 
-  knitr::kable(digits = 3)
-
 # model fit
+adj_p <- p.adjust(summary(final)$coefficients[,4], method = "holm")
+knitr::kable(cbind(summary(final)$coefficients, adj_p),
+             caption = "Adjusted p-values for the Project Cost Model using Holm Correction")
+
 broom::glance(final) %>%
   dplyr::select(r.squared, adj.r.squared, sigma) %>% 
   knitr::kable(digit = 3, , caption = "Cost Prediction")
@@ -445,24 +444,24 @@ broom::glance(final) %>%
 
 ```{r, echo = F}
 # coefficient table
-broom::tidy(proj_spd) %>%
-  dplyr::select(term, estimate, std.error, p.value) %>% 
-  knitr::kable(digits = 3, caption = "Coefficient Table")
+
+adj_p <- p.adjust(summary(proj_spd)$coefficients[,4], method = "holm")
+knitr::kable(cbind(summary(proj_spd)$coefficients, adj_p),
+             caption = "Adjusted p-values for the Project Speed Model using Holm Correction")
 
 # model fit
 broom::glance(proj_spd) %>%
   dplyr::select(r.squared, adj.r.squared, sigma) %>% 
   knitr::kable(digit = 3, label = 2 ,caption = "Project Speed (km buildout/year)")
-
 ```
 
-## Conclusion
+## Conclusion (Team Effort)
 
-### Cost Prediction (Blake)
+### Cost Prediction
 
 The transformed regression model explains a substantial portion of the variation in transit construction costs, with an $R^2$ of 0.694. This indicates that the included predictors capture much of the variation in project costs.
 
-Several project characteristics show significant relationships with cost. **Project length**, **Duration of project**,  **Number of stations** have positive and statistically significant coefficients, which indicates larger transit systems require greater construction expenditures.
+Several project characteristics show significant relationships with cost. **Project length**, **Duration of project**,  **Number of stations** have positive and statistically significant coefficients, which indicates larger transit systems require greater construction expenditures. For the cultural predictors, **uncertainty avoidance**, **power distance**, and **competitiveness** remain significant after cultural predictors are implemented. High power distance having a positive coefficient is most interpretable; states with more political inequality often have governments that impose grand infrastructure projects. 
 
 Interestingly, the **midpoint year of construction** also has a positive coefficient, indicating that more recent projects tend to be more expensive. This may reflect rising construction standards and higher labor costs.
 
@@ -470,21 +469,11 @@ Regional differences are also evident. Relatively, projects in **Europe** tend t
 
 Overall, the results suggest that both **project scale** (length, stations, duration) and **geographic region** are important factors in explaining variation in transit construction costs.
 
-### Project Speed (Sangey)
+### Project Speed
 
-From our final regression model, we observe a few predictors with a significant relationship with the speed of a project that make sense logically. For example, the logarithmic **Cost** of the project, and whether or not the project is in the regions of **Asia, Europe,** or **North Africa and West Asia** seem to have a positive relationship with the speed of the project. This makes sense as projects with a higher budget will have the resources they need to finish faster.  
+From our final regression model, we observe a few predictors with a significant relationship with the speed of a project that make sense logically. For example, the logarithmic **Cost** of the project, and whether or not the project is in the regions of **Asia, Europe,** or **North Africa and West Asia** seem to have a positive relationship with the speed of the project. This makes sense as projects with a higher budget will have the resources they need to finish faster. 
 
-Interestingly enough, it doesn't seem that the competitiveness of a culture improves project completion speed. Rather, it is detrimental to it. Though, this isn't a significant predictor.
-
-```{r Holm ProjSpeed, include = FALSE}
-
-adj_p <- p.adjust(summary(proj_spd)$coefficients[,4], method = "holm")
-knitr::kable(cbind(summary(proj_spd)$coefficients, adj_p),
-             caption = "Adjusted p-values for the Project Speed Model using Holm Correction")
-
-```
-
-We used Holm correction to account for the Family-Wise Error Rate, and found that most of the p-values, even after adjustment, are significant. As for our cultural factors, it seems that uncertainty isn't actually significant at the 0.05 level. We decide to keep all the predictors in the model, as we would like to keep all of the geographical regions and the cultural factors.
+After performing the Holm correction, **power distance** remains the only cultural predictors that remains significant. This seems to follow the trend set in the project cost model, that more sociopolitically unequal societies have a tendency to create more costly projects and pressure their administrations to finish them faster. 
 
 In the case of regions, further research shows that transit projects in China tend to be very short in distance and duration, making for projects that are completed quickly. Projects in Europe tend to have reasonable completion speeds save for a few outliers, and included in the **North Africa and West Asia** group are countries like Kuwait and Saudi Arabia that allocate very large budgets to their projects, likely increasing completion speed.  
 
