@@ -474,9 +474,21 @@ Overall, the results suggest that both **project scale** (length, stations, dura
 
 From our final regression model, we observe a few predictors with a significant relationship with the speed of a project that make sense logically. For example, the logarithmic **Cost** of the project, and whether or not the project is in the regions of **Asia, Europe,** or **North Africa and West Asia** seem to have a positive relationship with the speed of the project. This makes sense as projects with a higher budget will have the resources they need to finish faster.  
 
+Interestingly enough, it doesn't seem that the competitiveness of a culture improves project completion speed. Rather, it is detrimental to it. Though, this isn't a significant predictor.
+
+```{r Holm ProjSpeed, include = FALSE}
+
+adj_p <- p.adjust(summary(proj_spd)$coefficients[,4], method = "holm")
+knitr::kable(cbind(summary(proj_spd)$coefficients, adj_p),
+             caption = "Adjusted p-values for the Project Speed Model using Holm Correction")
+
+```
+
+We used Holm correction to account for the Family-Wise Error Rate, and found that most of the p-values, even after adjustment, are significant. As for our cultural factors, it seems that uncertainty isn't actually significant at the 0.05 level. We decide to keep all the predictors in the model, as we would like to keep all of the geographical regions and the cultural factors.
+
 In the case of regions, further research shows that transit projects in China tend to be very short in distance and duration, making for projects that are completed quickly. Projects in Europe tend to have reasonable completion speeds save for a few outliers, and included in the **North Africa and West Asia** group are countries like Kuwait and Saudi Arabia that allocate very large budgets to their projects, likely increasing completion speed.  
 
-Railroad projects are slower to complete and the number of stations have a small, but positive relationship with project speed, interestingly enough.  
+Railroad projects are slower to complete (though this variable is not significant, it remains in the model as it's important to note) and the number of stations have a small, but positive relationship with project speed, interestingly enough.  
 
 Though factors such as **Cost** and **Rail Type** have a significant relationship with the project speed, it is the region that seems to have the most weight when it comes to the completion speed of a project. This highlights variation in approaches to transit project management in different parts of the world, notable examples being the numerous short and quick Chinese projects, the grand scale Saudi projects, or the long Indian projects.  
 
