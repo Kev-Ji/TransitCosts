@@ -235,7 +235,7 @@ knitr::kable(caption = "Backward AIC selection summary")
 ```
 
 
-The subset of covariates was chosen through backward stepwise regression using AIC as the selection criteria. To stabilize variance, a Box–Cox transformation was applied, taking the response variable to the 1/4 power. Cook's distance was used to identify outliers but no outliers were identified based on common Cook's distance thresholds. VIF was used to assess multicollinearity but neither outliers or multicollinearity were identified in this model.
+The subset of covariates was chosen through backward stepwise regression using AIC as the selection criteria. To stabilize variance, a Box–Cox transformation was applied, taking the response variable to the 1/4 power. After transformation, variance of residuals become relatively constant and no clear patterns are detected. Residuals' distribution is roughly normal. Cook's distance was used to identify outliers but no outliers were identified based on common Cook's distance thresholds(0.5). VIF was used to assess multicollinearity but neither outliers nor multicollinearity were identified in this model.
 
 
 ### Accounting for spatial autocorrelation (Kevin)
@@ -459,15 +459,15 @@ broom::glance(proj_spd) %>%
 
 ### Cost Prediction
 
-The transformed regression model explains a substantial portion of the variation in transit construction costs, with an $R^2$ of 0.694. This indicates that the included predictors capture much of the variation in project costs.
+The transformed regression model with the addition of cultural variables explains a substantial portion of the variation in transit construction costs, with an $R^2$ of 0.948. This indicates that the included predictors capture much of the variation in project costs.
 
-Several project characteristics show significant relationships with cost. **Project length**, **Duration of project**,  **Number of stations** have positive and statistically significant coefficients, which indicates larger transit systems require greater construction expenditures. For the cultural predictors, **uncertainty avoidance**, **power distance**, and **competitiveness** remain significant after cultural predictors are implemented. High power distance having a positive coefficient is most interpretable; states with more political inequality often have governments that impose grand infrastructure projects. 
+Several project characteristics show significant relationships with cost. **Project length** and **Duration of project** have positive and statistically significant coefficients, which indicates larger transit systems require greater construction expenditures. For the cultural predictors, **uncertainty avoidance**, **power distance**, and **competitiveness** remain significant after cultural predictors are implemented. High power distance having a positive coefficient is most interpretable; states with more political inequality often have governments that impose grand infrastructure projects. 
 
 Interestingly, the **midpoint year of construction** also has a positive coefficient, indicating that more recent projects tend to be more expensive. This may reflect rising construction standards and higher labor costs.
 
 Regional differences are also evident. Relatively, projects in **Europe** tend to have lower costs, while projects in **South Eastern Asia and Oceania** and **Americas** tend to have higher costs. These differences may reflect variation in labor markets, regulatory environments, and construction practices across regions.
 
-Overall, the results suggest that both **project scale** (length, stations, duration) and **geographic region** are important factors in explaining variation in transit construction costs.
+Overall, the results suggest that both **project scale** (length, duration) and **geographic region** are important factors in explaining variation in transit construction costs.
 
 ### Project Speed
 
@@ -495,5 +495,11 @@ Though factors such as **Cost** and **Rail Type** have a significant relationshi
 * Romano & Wolf. (2017). _Resurrecting Weighted Least Squares._ Science Direct. Available at: https://www.sciencedirect.com/science/article/abs/pii/S030440761630197X
 
 * Minkov, M., Sokolov, B., Tasse, M. A., Jamballuu, E., Schachner, M., & Kaasa, A. (2023). A transposition of the minkov-hofstede model of culture to the individual level of analysis: Evidence from mongolia. Cross-Cultural Research, 57(2-3), 106939712311534. https://doi.org/10.1177/10693971231153461
+
+* Fufaro, E. (2026). *Model diagnostics I: Residual plots, Transformations*., STAT 423, University Of Washington.
+
+* Fufaro, E. (2026). *Model diagnostics II: Multicollinearity, Outliers and Influential observations*., STAT 423, University Of Washington.
+
+* Fufaro, E. (2026). *Model selection*., STAT 423, University Of Washington.
 
 ‌
