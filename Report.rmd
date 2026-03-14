@@ -101,7 +101,7 @@ We create four new variables:
 
 * duration (dbl): how long the project took, computed as the difference between the end and start years
 * region (character): which geographic region the transit project's country is located in, as per the country's ISO code
-* group (character): a further grouping of projects by geographic regions, to ensure that there are sufficient observations to represent different geographic areas. These groupings were North and South America, East Asia, Eastern Europe, Western Europe, SE Asia and Oceania, and North Africa and West Asia. These groupings were initially based on categories within the `countrycode` packages, but categories with observations below 20 were merged until they met until they had sufficient observations.
+* group (character): a further grouping of projects by geographic regions, to ensure that there are sufficient observations to represent different geographic areas (World Bank, 2017). These groupings were North and South America, East Asia, Eastern Europe, Western Europe, SE Asia and Oceania, and North Africa and West Asia. These groupings were initially based on categories within the `countrycode` packages, but categories with observations below 20 were merged until they met until they had sufficient observations.
 * project speed (dbl): $\frac{\text{length of railway made}}{\text{Years spent on transit project}}$
 
 ### Project Goal
